@@ -55,7 +55,7 @@ static WiFiManagerParameter ntpPortField(NULL);
 //
 /////////////////////////////////////////////////////////////////////////////////
 WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_LastTime(), m_Udp(), 
-                                     m_Connected(false), m_UsingNetworkTime(false),
+                                     m_UsingNetworkTime(false),
                                      m_Params(), m_Timezone(m_Params.m_DstStartRule,
                                      m_Params.m_DstEndRule), 
                                      m_MinNtpRateSec(60 * 60),
@@ -212,11 +212,14 @@ bool WiFiTimeManager::process()
 {
     // If we're not yet connected, then call the wifi manager to see if a
     // connection was recently made.
-    if (!m_Connected)
+    if (!IsConnected())
     {
         if (WiFiManager::process())
         {
-            m_Connected = true;
+            // Delay briefly to let the network settle, then attempt to get
+            // the time from the network.
+            delay(500);
+            GetUtcTime();
 /*            
             // Just connected which means that we need to reset the network.
             // This is a kludge, but it is the only way I could get a new
@@ -234,7 +237,7 @@ bool WiFiTimeManager::process()
     {
     }
  
-    return m_Connected;
+    return IsConnected();
 } // End process().
 
 

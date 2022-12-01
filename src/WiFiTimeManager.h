@@ -177,9 +177,9 @@ public:
     //    'false' otherwise.
     //
     /////////////////////////////////////////////////////////////////////////////
-    boolean autoConnect() { m_Connected = WiFiManager::autoConnect(); return m_Connected; }
+    boolean autoConnect() { WiFiManager::autoConnect(); return IsConnected(); }
     boolean autoConnect(char const *pApName, char const *pApPassword = NULL)
-            {m_Connected = WiFiManager::autoConnect(pApName, pApPassword); return m_Connected; }
+            { WiFiManager::autoConnect(pApName, pApPassword); return IsConnected(); }
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -332,7 +332,7 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // Getters and setters.
     /////////////////////////////////////////////////////////////////////////////
-    bool     IsConnected()      const { return m_Connected; }
+    bool     IsConnected()            { return getLastConxResult() == WL_CONNECTED; }
     int32_t  GetTzOfst()        const { return m_Params.m_TzOfst; }
     char    *GetTzAbbrev()            { return m_Params.m_DstEndRule.abbrev; }
     bool     GetUseDst()        const { return m_Params.m_UseDst; }
@@ -575,7 +575,6 @@ private:
     /////////////////////////////////////////////////////////////////////////////
     time_t         m_LastTime;          // Timestamp from the last NTP packet.
     WiFiUDP        m_Udp;               // UDP instance for tx & rx of UDP packets.
-    bool           m_Connected;         // Set if server is connected to net.
     bool           m_UsingNetworkTime;  // True if using time from NTP server.
     TimeParameters m_Params;            // Timezone and DST data.
     Timezone       m_Timezone;          // Timezone class for TZ and DST change.
