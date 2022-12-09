@@ -11,7 +11,7 @@
 
 static WiFiTimeManager *pWtm;
 static bool WmSeparateButton = true;
-static bool WmBlocking = true;
+static bool WmBlocking = false;
 static const char *AP_NAME = "WiFi Clock Setup";
 
 
@@ -76,8 +76,6 @@ void setup()
     pWtm = WiFiTimeManager::Instance();    
     pWtm->Init(AP_NAME, WmSeparateButton);
     pWtm->SetMinNtpRate(60); // Contact NTP server no more than once per minute.
-    pWtm->setConfigPortalBlocking(WmBlocking);
-
     
     
     
@@ -90,10 +88,9 @@ pWtm->setPreSaveParamsCallback(SetPreSaveParamsCallback);
 pWtm->setPreOtaUpdateCallback(SetPreOtaUpdateCallback);
 
     
-    
-
-    bool res;
-    res = pWtm->autoConnect(AP_NAME); 
+    pWtm->setConfigPortalBlocking(WmBlocking);
+    pWtm->setConfigPortalTimeout(0);
+    bool res = pWtm->startConfigPortal(AP_NAME);
 
     if(!res)
     {
@@ -130,18 +127,9 @@ void checkButton()
             // start portal w delay
             Serial.println("Starting config portal");
             pWtm->setConfigPortalTimeout(120);
-          
-            if (!pWtm->startConfigPortal(AP_NAME))
-            {
-                Serial.println("failed to connect or hit timeout");
-                delay(3000);
-                ESP.restart();
-            } 
-            else
-            {
-                //if you get here you have connected to the WiFi
-                Serial.println("connected...yeey :)");
-            }
+            pWtm->setConfigPortalBlocking(false);
+            pWtm->setConfigPortalTimeout(0);
+            pWtm->startConfigPortal(AP_NAME);
         }
     }
 }
@@ -155,9 +143,15 @@ void setLeds(bool v)
 
 void loop()
 {
-    if(!WmBlocking)
+    if(!pWtm->IsConnected())
     {
-        pWtm->process(); // avoid delays() in loop when non-blocking and other long running code  
+        // Avoid delays() in loop when non-blocking and other long running code  
+        if (pWtm->process())
+        {
+            // This is the place to do something when we transition from
+            // unconnected to connected.  As an example, here we get the time.
+            pWtm->GetUtcTime();
+        }
     }
    
     checkButton();

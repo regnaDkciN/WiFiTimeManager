@@ -203,9 +203,7 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
 //    A 'true' value indicates connected, while a 'false' value
 //    indicates not connected.
 //
-// NOTE: If a new connection was just established we will not return from this
-//       method.  Instead we will reset the ESP32.  (See the commented code
-//       below).
+// NOTE: If a new connection was just established we update the network time. 
 //
 /////////////////////////////////////////////////////////////////////////////////
 bool WiFiTimeManager::process()
@@ -220,21 +218,7 @@ bool WiFiTimeManager::process()
             // the time from the network.
             delay(500);
             GetUtcTime();
-/*            
-            // Just connected which means that we need to reset the network.
-            // This is a kludge, but it is the only way I could get a new
-            // connection to take effect on the ESP32.  Here we delay in order
-            // to allow the wifi manager to complete its NVS save, then we
-            // reset the system.  When we come back up, we should be connected
-            // to the new network.
-            delay(1000);
-            ESP.restart();
-            delay(1000);
-*/            
         }
-    }
-    else
-    {
     }
  
     return IsConnected();
