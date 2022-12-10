@@ -2,7 +2,8 @@ TODO:
 =====
 - Implement and test DS3231 code.
 - Explain use of "Partition Scheme" in Arduino to set size of memory used by SPIFFS - set to "Huge APP"
-- Add way for user to add parameters to setup screen
+- Add example code to demonstrate user adding parameters to setup screen
+
 
 DONE:
 =====
@@ -18,3 +19,4 @@ x Move pNtpServer and ntpPort from argument of Init() to settable parameter. (DI
 - Add NTP server and NTP port to web setup page.
 - Add status so user can see where time is coming from.
 - Work on non-blocking implementation and testing.
+- Add way for user to add parameters to setup screen

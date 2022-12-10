@@ -62,7 +62,8 @@ WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_LastTime(), m_Udp(),
                                      m_pLclTimeChangeRule(NULL),
                                      m_pSaveParamsCallback(NULL), 
                                      m_pUtcGetCallback(DefaultUtcGetCallback),
-                                     m_pUtcSetCallback(DefaultUtcSetCallback)
+                                     m_pUtcSetCallback(DefaultUtcSetCallback),
+                                     m_pUpdateWebPageCallback(NULL)
 {
     // Clear the UDP packet buffer.
     memset(m_PacketBuf, 0, NTP_PACKET_SIZE);
@@ -187,6 +188,10 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
     setConfigPortalBlocking(true);
     // Set to dark theme.
     setClass("invert");
+    
+    // Set our default time to the start of 2022.
+    const time_t START_2022_UNIX_TIME = 1640995200;
+    setTime(START_2022_UNIX_TIME);
 
     return true;
 } // End Init().
@@ -419,6 +424,13 @@ void WiFiTimeManager::UpdateWebPage()
     
     // Save our web page for later use.
     strncpy(WebPageBuffer, WebPageString.c_str(), MAX_WEB_PAGE_SIZE - 1);
+
+    // If selected, call back to let user code add HTML and/or java script.
+    if (m_pUpdateWebPageCallback != NULL)
+    {
+        m_pUpdateWebPageCallback();
+    }
+   
 } // End UpdateWebPage().
 
 

@@ -230,6 +230,44 @@ public:
 
 
     /////////////////////////////////////////////////////////////////////////////
+    // SetUpdateWebPageCallback()
+    //
+    // Sets a callback that will be invoked when when the Setup web page is 
+    // updated.  The user can use this callback to monitor or modify the 
+    // contents of the Setup web page.
+    //
+    // Arguments:
+    //   func - Pointer to the function to be called any time the Setup web
+    //          page gets updated.  A NULL value is acceptable.
+    //
+    // Note: When this callback is invoked, the (long) NULL terminated string
+    //       that represents the Setup web page is contained in the WebPageBuffer.
+    //       GetWebPage() will return a pointer to the buffer, and 
+    //       GetMaxWebPageSize() will return the maximum size that is supported
+    //       by the WebPageBuffer.  The user is free to modify the string within
+    //       the buffer, but be careful not to exceed the maximum buffer size,
+    //       and be sure to NULL terminate the modified string before return.
+    //       Several comments appear within the WebPageBuffer that
+    //       may be employed to locate specific places within the standard
+    //       web page.  These are:
+    //          "<!-- HTML START -->"
+    //              This marks the start of HTML, which is also the start of
+    //              the web page string.
+    //          "<!-- HTML END -->"
+    //              This marks the end of HTML and is just before the end of the
+    //              web page body.
+    //          "// JS START"
+    //              This marks the start of the java script, just after the
+    //              <script> declaration.
+    //          "// JS END"
+    //              This marks the of of the java script, just before the 
+    //              </script> declaration.
+    //
+    /////////////////////////////////////////////////////////////////////////////
+    void SetUpdateWebPageCallback(std::function<void()> func) { m_pUpdateWebPageCallback = func; }
+
+
+    /////////////////////////////////////////////////////////////////////////////
     // ResetData()
     //
     // This method resets/clears any saved network connection credentials
@@ -349,6 +387,7 @@ public:
     uint32_t GetDstEndHour()    const { return m_Params.m_DstEndRule.hour; }
     int32_t  GetDstEndOfst()    const { return m_Params.m_DstEndRule.offset; }
     char    *GetWebPage()             { return WebPageBuffer; }
+    uint32_t GetMaxWebPageSize() const{ return MAX_WEB_PAGE_SIZE; }
     char    *GetNtpAddr()             { return m_Params.m_NtpAddr; }
     uint32_t GetNtpPort()       const { return m_Params.m_NtpPort; }
     bool     UsingNetworkTime() const { return m_UsingNetworkTime; }
@@ -559,16 +598,19 @@ private:
     /////////////////////////////////////////////////////////////////////////////
     static const char    *pPrefSavedStateLabel;
     static const size_t   MAX_NVS_NAME_LEN;
-    static const int      DFLT_SERVER_PORT = 80;
-    static const size_t   MAX_JSON_SIZE = 350;
-    static const size_t   MAX_WEB_PAGE_SIZE = sizeof(TZ_SELECT_STR) + MAX_JSON_SIZE;
-    static char           WebPageBuffer[MAX_WEB_PAGE_SIZE];
+    static const int      DFLT_SERVER_PORT  = 80;
+    static const size_t   MAX_JSON_SIZE     = 350;
     static const char    *m_pName;
-    static const int      NTP_PACKET_SIZE  = 48;     // NTP timestamp is in the 
-                                                     //    first 48 bytes of the message.
-    static const int      UDP_TIMEOUT_MS   = 2000;   // Timeout in miliseconds to
-                                                     //    wait for n UDP packet to arrive.
+    static const int      NTP_PACKET_SIZE   = 48;     // NTP timestamp is in the 
+                                                      //    first 48 bytes of the message.
+    static const int      UDP_TIMEOUT_MS    = 2000;   // Timeout in miliseconds to
+                                                      //    wait for n UDP packet to arrive.
 
+    // Allocate enough space to buffer twice the size of our original web page.
+    // This allows for the user to add HTML and/or java script if needed.
+    // This is wasteful, but easy.  %%%jmc Possibly this in the future.
+    static const size_t   MAX_WEB_PAGE_SIZE = 2 * sizeof(TZ_SELECT_STR) + MAX_JSON_SIZE;
+    static char           WebPageBuffer[MAX_WEB_PAGE_SIZE];
 
     /////////////////////////////////////////////////////////////////////////////
     // Private instance data.
@@ -585,6 +627,7 @@ private:
     std::function<void()> m_pSaveParamsCallback;     // Pointer to save params callback.
     std::function<time_t()> m_pUtcGetCallback;       // Pointer to get UTC callback.
     std::function<void(time_t t)> m_pUtcSetCallback; // Pointer to set UTC callback.
+    std::function<void()> m_pUpdateWebPageCallback;  // Pointer to save params callback.
     uint8_t        m_PacketBuf[NTP_PACKET_SIZE]; // Buffer to hold in & out packets.
     
 

@@ -13,6 +13,7 @@
 #define WEBPAGES_H
 
 const char TZ_SELECT_STR[] = R"=====(
+    <!-- HTML START -->
     <!-- TIMEZONE SELECTION -->
     <br/>
     <h3 style="display:inline">TIMEZONE:</h3>
@@ -207,8 +208,10 @@ const char TZ_SELECT_STR[] = R"=====(
     <h3 style="display:inline">NTP SERVER PORT:</h3>
     <input type="number" id="ntpServerPort" name="ntpServerPort" min="1" max="65535">
     <br>
+    <!-- HTML END -->
 </body>
 <script>
+  // JS START 
   // Global variables.
 
   // Initialize globals on page load.
@@ -299,6 +302,7 @@ const char TZ_SELECT_STR[] = R"=====(
     }
   }
 
+// JS END
 </script>
 
 )=====";  // End TZ_SELECT_STR[].

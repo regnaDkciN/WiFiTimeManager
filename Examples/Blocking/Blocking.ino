@@ -98,7 +98,6 @@ pWtm->setPreOtaUpdateCallback(SetPreOtaUpdateCallback);
     if(!res)
     {
         Serial.println("Failed to connect or hit timeout");
-        // ESP.restart();
     } 
     else
     {

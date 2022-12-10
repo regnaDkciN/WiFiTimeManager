@@ -66,10 +66,10 @@ void setup()
     
     // Test LEDs
     digitalWrite(LOCAL_CLOCK_PIN, HIGH);
-    delay(2000);
+    delay(1000);
     digitalWrite(LOCAL_CLOCK_PIN, LOW);
     digitalWrite(NET_CLOCK_PIN, HIGH);
-    delay(2000);
+    delay(1000);
     digitalWrite(NET_CLOCK_PIN, LOW);
     
     
@@ -77,25 +77,21 @@ void setup()
     pWtm->Init(AP_NAME, WmSeparateButton);
     pWtm->SetMinNtpRate(60); // Contact NTP server no more than once per minute.
     
-    
-    
-pWtm->setAPCallback(SetAPCallback);
-pWtm->setWebServerCallback(SetWebServerCallback);
-pWtm->setConfigResetCallback(SetConfigResetCallback);
-pWtm->setSaveConfigCallback(SetSaveConfigCallback);
-pWtm->setPreSaveConfigCallback(SetPreSaveConfigCallback);
-pWtm->setPreSaveParamsCallback(SetPreSaveParamsCallback);
-pWtm->setPreOtaUpdateCallback(SetPreOtaUpdateCallback);
+    // Setup some demo callbacks that simply report entry.
+    pWtm->setAPCallback(SetAPCallback);
+    pWtm->setWebServerCallback(SetWebServerCallback);
+    pWtm->setConfigResetCallback(SetConfigResetCallback);
+    pWtm->setSaveConfigCallback(SetSaveConfigCallback);
+    pWtm->setPreSaveConfigCallback(SetPreSaveConfigCallback);
+    pWtm->setPreSaveParamsCallback(SetPreSaveParamsCallback);
+    pWtm->setPreOtaUpdateCallback(SetPreOtaUpdateCallback);
 
-    
+    // Attempt to connect to the network.
     pWtm->setConfigPortalBlocking(WmBlocking);
     pWtm->setConfigPortalTimeout(0);
-    bool res = pWtm->startConfigPortal(AP_NAME);
-
-    if(!res)
+    if(!pWtm->autoConnect(AP_NAME))
     {
         Serial.println("Failed to connect or hit timeout");
-        // ESP.restart();
     } 
     else
     {
