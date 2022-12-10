@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 // WiFiTimeManager.h
 //
-// This class implements the WiFiTimeManager class.  It handles miscellaneous 
+// This class implements the WiFiTimeManager class.  It handles miscellaneous
 // timezone and DST related tasks.
 //
 // History:
@@ -33,7 +33,7 @@ static const char    *DFLT_TZ_ABBREV       = "EST";   // DST end rule abbreviati
 static const bool     DFLT_USE_DST         = true;    // true to use DST.
 static const int32_t  DFLT_DST_OFST        = 60;      // 30 or 60 minute DST offset.
 static const char    *DFLT_DST_START_ABBREV= "EDT";   // DST start rule abbreviation.
-static const uint32_t DFLT_DST_START_WK    = Second;  // DST starts 2nd 
+static const uint32_t DFLT_DST_START_WK    = Second;  // DST starts 2nd
 static const uint32_t DFLT_DST_START_DOW   = Sun;     //    Sunday
 static const uint32_t DFLT_DST_START_MONTH = Mar;     //    of March
 static const uint32_t DFLT_DST_START_HOUR  = 2;       //    at 2 AM.
@@ -69,14 +69,14 @@ struct TimeParameters
                      DFLT_DST_END_MONTH,
                      DFLT_DST_END_HOUR,
                      DFLT_TZ_OFST}
-    { 
+    {
         strncpy(m_NtpAddr, DFLT_NTP_ADDR, MAX_NTP_ADDR - 1);
         strncpy(m_DstStartRule.abbrev, DFLT_DST_START_ABBREV, sizeof(m_DstStartRule.abbrev) - 1);
         strncpy(m_DstEndRule.abbrev, DFLT_TZ_ABBREV, sizeof(m_DstStartRule.abbrev) - 1);
     }
-    
+
     static const size_t MAX_NTP_ADDR = 26;
-    
+
     // Time related fields.
     uint32_t       m_Version;              // Struct version.  Bump on changes.
     int32_t        m_TzOfst;               // Timezone offset in minutes.
@@ -86,7 +86,7 @@ struct TimeParameters
     char           m_NtpAddr[MAX_NTP_ADDR];// Ntp server address.
     TimeChangeRule m_DstStartRule;         // Rule for starting DST.
     TimeChangeRule m_DstEndRule;           // Rule for ending DST.
-    
+
 }; // End struct TimeParameters.
 
 
@@ -110,8 +110,8 @@ public:
     //
     /////////////////////////////////////////////////////////////////////////////
     static WiFiTimeManager *Instance();
-    
-    
+
+
     /////////////////////////////////////////////////////////////////////////////
     // Init()
     //
@@ -168,7 +168,7 @@ public:
     //                 to be used for the access point.
     //   pApPassword - Pointer to to a null terminated string representing the
     //                 password to be used by the access point.  This argument
-    //                 is optional and if not used, the access point will not 
+    //                 is optional and if not used, the access point will not
     //                 require a password.  If a password is used, it should be
     //                 8 to 63 characters.
     //
@@ -232,8 +232,8 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // SetUpdateWebPageCallback()
     //
-    // Sets a callback that will be invoked when when the Setup web page is 
-    // updated.  The user can use this callback to monitor or modify the 
+    // Sets a callback that will be invoked when when the Setup web page is
+    // updated.  The user can use this callback to monitor or modify the
     // contents of the Setup web page.
     //
     // Arguments:
@@ -242,7 +242,7 @@ public:
     //
     // Note: When this callback is invoked, the (long) NULL terminated string
     //       that represents the Setup web page is contained in the WebPageBuffer.
-    //       GetWebPage() will return a pointer to the buffer, and 
+    //       GetWebPage() will return a pointer to the buffer, and
     //       GetMaxWebPageSize() will return the maximum size that is supported
     //       by the WebPageBuffer.  The user is free to modify the string within
     //       the buffer, but be careful not to exceed the maximum buffer size,
@@ -260,7 +260,7 @@ public:
     //              This marks the start of the java script, just after the
     //              <script> declaration.
     //          "// JS END"
-    //              This marks the of of the java script, just before the 
+    //              This marks the of of the java script, just before the
     //              </script> declaration.
     //
     /////////////////////////////////////////////////////////////////////////////
@@ -314,7 +314,7 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     bool Reset();
 
-    
+
     /////////////////////////////////////////////////////////////////////////////
     // GetUtcTime()
     //
@@ -330,8 +330,8 @@ public:
     //
     /////////////////////////////////////////////////////////////////////////////
     time_t GetUtcTime();
-    
-    
+
+
     /////////////////////////////////////////////////////////////////////////////
     // GetLocalTime()
     //
@@ -343,11 +343,11 @@ public:
     //
     /////////////////////////////////////////////////////////////////////////////
     time_t GetLocalTime();
-    
-    
+
+
     /////////////////////////////////////////////////////////////////////////////
     // PrintDateTime
-    // 
+    //
     // Format and print a time_t value, with a time zone appended.
     //
     // Arguments:
@@ -356,8 +356,8 @@ public:
     //
     /////////////////////////////////////////////////////////////////////////////
     void PrintDateTime(time_t t, const char *pTz);
-    
-    
+
+
     /////////////////////////////////////////////////////////////////////////////
     // GetLocalTimezoneString()
     //
@@ -365,8 +365,8 @@ public:
     //
     /////////////////////////////////////////////////////////////////////////////
     const char *GetLocalTimezoneString();
-    
-    
+
+
     /////////////////////////////////////////////////////////////////////////////
     // Getters and setters.
     /////////////////////////////////////////////////////////////////////////////
@@ -391,7 +391,7 @@ public:
     char    *GetNtpAddr()             { return m_Params.m_NtpAddr; }
     uint32_t GetNtpPort()       const { return m_Params.m_NtpPort; }
     bool     UsingNetworkTime() const { return m_UsingNetworkTime; }
-    
+
     // Min and max constants for selectable fields.
     static const uint32_t WK_MIN     = Last;    // Last
     static const uint32_t WK_MAX     = Fourth;  // Fourth
@@ -404,7 +404,7 @@ public:
     static const uint32_t OFFSET_MIN = 30;      // 30 minutes
     static const uint32_t OFFSET_MAX = 60;      // 60 minutes
     static const uint32_t OFFSET_MID = (OFFSET_MAX + OFFSET_MIN) / 2; // Middle of offset range.
-        
+
 
     void SetTzOfst(int32_t v)         { m_Params.m_TzOfst = v; }
     void SetTzAbbrev(char *v)         { strncpy(m_Params.m_DstEndRule.abbrev, v, sizeof(m_Params.m_DstStartRule.abbrev) - 1); }
@@ -425,7 +425,7 @@ public:
     void SetMinNtpRate(uint32_t r)    { m_MinNtpRateSec = r >= MIN_NTP_UPDATE_SEC ? r : MIN_NTP_UPDATE_SEC; }
     void SetNtpAddr(char *v)          { strncpy(m_Params.m_NtpAddr, v, sizeof(m_Params.m_NtpAddr) - 1); }
     void SetNtpPort(uint32_t p)       { m_Params.m_NtpPort = constrain(p, 1, 65535); }
-    
+
 protected:
 
 
@@ -457,7 +457,7 @@ private:
     //
     /////////////////////////////////////////////////////////////////////////////
     void UpdateTimezoneRules();
-    
+
 
     /////////////////////////////////////////////////////////////////////////////
     // UpdateWebPage()
@@ -490,8 +490,8 @@ private:
     //
     /////////////////////////////////////////////////////////////////////////////
     static void SaveParamCallback();
-    
-    
+
+
     /////////////////////////////////////////////////////////////////////////////
     // DefaultUtcGetCallback()
     //
@@ -509,8 +509,8 @@ private:
     //
     /////////////////////////////////////////////////////////////////////////////
     static time_t DefaultUtcGetCallback() { return now(); }
-    
-    
+
+
     /////////////////////////////////////////////////////////////////////////////
     // DefaultUtcSetCallback()
     //
@@ -527,7 +527,7 @@ private:
     //
     /////////////////////////////////////////////////////////////////////////////
     static void DefaultUtcSetCallback(time_t t) { setTime(t); }
-    
+
 
     /////////////////////////////////////////////////////////////////////////////
     // GetParamString()
@@ -544,8 +544,8 @@ private:
     //
     /////////////////////////////////////////////////////////////////////////////
     String GetParamString(String name);
-    
-    
+
+
     /////////////////////////////////////////////////////////////////////////////
     // GetParamChars()
     //
@@ -554,7 +554,7 @@ private:
     // Arguments:
     //   name - String containing the name of the argument whose value will be
     //          returned.
-    //   pBuf - Pointer to the buffer in which the parameter's value will be 
+    //   pBuf - Pointer to the buffer in which the parameter's value will be
     //          returned.
     //   size - Size of the buffer pointed to by pBuf.
     //
@@ -565,8 +565,8 @@ private:
     //
     /////////////////////////////////////////////////////////////////////////////
     char  *GetParamChars(String name, char *buf, size_t size);
-    
-    
+
+
     /////////////////////////////////////////////////////////////////////////////
     // GetParamInt()
     //
@@ -582,8 +582,8 @@ private:
     //
     /////////////////////////////////////////////////////////////////////////////
     int    GetParamInt(String name);
-    
-    
+
+
     /////////////////////////////////////////////////////////////////////////////
     // SendNtpPacket()
     //
@@ -591,8 +591,8 @@ private:
     //
     /////////////////////////////////////////////////////////////////////////////
     void SendNtpPacket();
-    
-    
+
+
     /////////////////////////////////////////////////////////////////////////////
     // Private static constants.
     /////////////////////////////////////////////////////////////////////////////
@@ -601,7 +601,7 @@ private:
     static const int      DFLT_SERVER_PORT  = 80;
     static const size_t   MAX_JSON_SIZE     = 350;
     static const char    *m_pName;
-    static const int      NTP_PACKET_SIZE   = 48;     // NTP timestamp is in the 
+    static const int      NTP_PACKET_SIZE   = 48;     // NTP timestamp is in the
                                                       //    first 48 bytes of the message.
     static const int      UDP_TIMEOUT_MS    = 2000;   // Timeout in miliseconds to
                                                       //    wait for n UDP packet to arrive.
@@ -629,7 +629,7 @@ private:
     std::function<void(time_t t)> m_pUtcSetCallback; // Pointer to set UTC callback.
     std::function<void()> m_pUpdateWebPageCallback;  // Pointer to save params callback.
     uint8_t        m_PacketBuf[NTP_PACKET_SIZE]; // Buffer to hold in & out packets.
-    
+
 
 }; // End class WiFiTimeManager.
 

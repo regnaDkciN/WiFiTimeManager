@@ -54,16 +54,16 @@ void SetPreOtaUpdateCallback()
 void setup()
 {
     Serial.begin(115200);
-    Serial.setDebugOutput(true);  
+    Serial.setDebugOutput(true);
     delay(1000);
     Serial.println("\n Starting");
-    
+
     pinMode(TRIGGER_PIN, INPUT_PULLUP);
     pinMode(NET_CLOCK_PIN, OUTPUT);
     digitalWrite(NET_CLOCK_PIN, LOW);
     pinMode(LOCAL_CLOCK_PIN, OUTPUT);
     digitalWrite(LOCAL_CLOCK_PIN, LOW);
-    
+
     // Test LEDs
     digitalWrite(LOCAL_CLOCK_PIN, HIGH);
     delay(1000);
@@ -71,12 +71,12 @@ void setup()
     digitalWrite(NET_CLOCK_PIN, HIGH);
     delay(1000);
     digitalWrite(NET_CLOCK_PIN, LOW);
-    
-    
-    pWtm = WiFiTimeManager::Instance();    
+
+
+    pWtm = WiFiTimeManager::Instance();
     pWtm->Init(AP_NAME, WmSeparateButton);
     pWtm->SetMinNtpRate(60); // Contact NTP server no more than once per minute.
-    
+
     // Setup some demo callbacks that simply report entry.
     pWtm->setAPCallback(SetAPCallback);
     pWtm->setWebServerCallback(SetWebServerCallback);
@@ -92,10 +92,10 @@ void setup()
     if(!pWtm->autoConnect(AP_NAME))
     {
         Serial.println("Failed to connect or hit timeout");
-    } 
+    }
     else
     {
-        //if you get here you have connected to the WiFi    
+        //if you get here you have connected to the WiFi
         Serial.println("connected...yeey :)");
     }
 }
@@ -119,7 +119,7 @@ void checkButton()
                 pWtm->ResetData();
                 ESP.restart();
             }
-          
+
             // start portal w delay
             Serial.println("Starting config portal");
             pWtm->setConfigPortalTimeout(120);
@@ -141,7 +141,7 @@ void loop()
 {
     if(!pWtm->IsConnected())
     {
-        // Avoid delays() in loop when non-blocking and other long running code  
+        // Avoid delays() in loop when non-blocking and other long running code
         if (pWtm->process())
         {
             // This is the place to do something when we transition from
@@ -149,9 +149,9 @@ void loop()
             pWtm->GetUtcTime();
         }
     }
-   
+
     checkButton();
-    
+
     static uint32_t lastTime = millis();
     uint32_t thisTime = millis();
     static const uint32_t updateTime = 10000;   // 10 seconds between reading time
@@ -166,5 +166,5 @@ void loop()
         Serial.println();
     }
     delay(1);
-    
+
 }

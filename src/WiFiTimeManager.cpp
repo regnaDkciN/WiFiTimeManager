@@ -54,23 +54,23 @@ static WiFiManagerParameter ntpPortField(NULL);
 // Initialize our instance data.
 //
 /////////////////////////////////////////////////////////////////////////////////
-WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_LastTime(), m_Udp(), 
+WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_LastTime(), m_Udp(),
                                      m_UsingNetworkTime(false),
                                      m_Params(), m_Timezone(m_Params.m_DstStartRule,
-                                     m_Params.m_DstEndRule), 
+                                     m_Params.m_DstEndRule),
                                      m_MinNtpRateSec(60 * 60),
                                      m_pLclTimeChangeRule(NULL),
-                                     m_pSaveParamsCallback(NULL), 
+                                     m_pSaveParamsCallback(NULL),
                                      m_pUtcGetCallback(DefaultUtcGetCallback),
                                      m_pUtcSetCallback(DefaultUtcSetCallback),
                                      m_pUpdateWebPageCallback(NULL)
 {
     // Clear the UDP packet buffer.
     memset(m_PacketBuf, 0, NTP_PACKET_SIZE);
-    
+
     // If DST is not used, then fix the timezone rules.
     UpdateTimezoneRules();
-    
+
     // Initialize clock to on Jan 1 1970. In seconds, that's 2208988800.
     setTime(SEVENTY_YEARS);
 } // End constructor.
@@ -119,16 +119,16 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
 {
     // Set mode.  ESP defaults to STA+AP.
     WiFi.mode(WIFI_STA);
-    
+
     // Setup our AP name if one was given.
     if ((pApName == NULL) || (*pApName == '\0'))
     {
         return false;
     }
-    
+
     // Restore saved state info.  If no state info has been saved yet, then
     // save our default values.
-    if (!Restore())    
+    if (!Restore())
     {
         Serial.println("Restore failed");
         if (!Save())
@@ -137,7 +137,7 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
             return false;
         }
     }
-    
+
     MDNS.begin(pApName);
 
     UpdateWebPage();
@@ -188,7 +188,7 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
     setConfigPortalBlocking(true);
     // Set to dark theme.
     setClass("invert");
-    
+
     // Set our default time to the start of 2022.
     const time_t START_2022_UNIX_TIME = 1640995200;
     setTime(START_2022_UNIX_TIME);
@@ -208,7 +208,7 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
 //    A 'true' value indicates connected, while a 'false' value
 //    indicates not connected.
 //
-// NOTE: If a new connection was just established we update the network time. 
+// NOTE: If a new connection was just established we update the network time.
 //
 /////////////////////////////////////////////////////////////////////////////////
 bool WiFiTimeManager::process()
@@ -225,7 +225,7 @@ bool WiFiTimeManager::process()
             GetUtcTime();
         }
     }
- 
+
     return IsConnected();
 } // End process().
 
@@ -244,7 +244,7 @@ void WiFiTimeManager::ResetData()
 {
     // Clear the WiFiManager network data.
     resetSettings();
-    
+
     // Clear our timezone/dst state data.
     Preferences prefs;
     prefs.begin(m_pName);
@@ -285,7 +285,7 @@ Serial.println("Saving Data");
     {
         // Data has changed so go ahead and save it.
         Serial.println("\nTimeSettings - saving to NVS.");
-        saved = 
+        saved =
           (prefs.putBytes(pPrefSavedStateLabel, &m_Params, sizeof(TimeParameters)) ==
               sizeof(TimeParameters));
     }
@@ -296,7 +296,7 @@ Serial.println("Saving Data");
         Serial.println("\nTimeSettings - not saving to NVS.");
     }
     prefs.end();
-    
+
     // Let the caller know if we succeeded or failed.
     return saved;
  } // End Save().
@@ -324,7 +324,7 @@ Serial.println("Restoring Saved Data");
         prefs.getBytes(pPrefSavedStateLabel, &cachedState, sizeof(TimeParameters));
 
     // Save the restored values only if the get was successful.
-    if ((restored == sizeof(TimeParameters)) && 
+    if ((restored == sizeof(TimeParameters)) &&
         (cachedState.m_Version == TP_VERSION))
     {
         memcpy(&m_Params, &cachedState, sizeof(TimeParameters));
@@ -395,7 +395,7 @@ void WiFiTimeManager::UpdateWebPage()
 {
     // Start with our basic web page.
     String WebPageString(TZ_SELECT_STR);
-        
+
     // Create our JSON document containing all of our user settable parameters.
     DynamicJsonDocument doc(MAX_JSON_SIZE);
     doc["TIMEZONE"] = GetTzOfst();;
@@ -418,10 +418,10 @@ void WiFiTimeManager::UpdateWebPage()
     String JsonStr;
     serializeJson(doc, JsonStr);
     Serial.println(JsonStr);
-    
+
     // Update our web page with our user settable parameters in JSON form.
     WebPageString.replace("*PUT_TZ_JSON_DATA_HERE*", JsonStr);
-    
+
     // Save our web page for later use.
     strncpy(WebPageBuffer, WebPageString.c_str(), MAX_WEB_PAGE_SIZE - 1);
 
@@ -430,7 +430,7 @@ void WiFiTimeManager::UpdateWebPage()
     {
         m_pUpdateWebPageCallback();
     }
-   
+
 } // End UpdateWebPage().
 
 
@@ -447,7 +447,7 @@ void WiFiTimeManager::UpdateWebPage()
 void WiFiTimeManager::SaveParamCallback()
 {
     WiFiTimeManager *pWtm = Instance();
-    
+
     Serial.println("SaveParamCallback");
     // Stuff the (possibly) new values into our local data.
     char buf[TimeParameters::MAX_NTP_ADDR];
@@ -470,14 +470,14 @@ void WiFiTimeManager::SaveParamCallback()
     pWtm->SetDstEndOfst(tzOfst);
     pWtm->SetNtpAddr(pWtm->GetParamChars("ntpServerAddr", buf, sizeof(buf)));
     pWtm->SetNtpPort(pWtm->GetParamInt("ntpServerPort"));
-    
+
     // Save the (possibly) new values in NVS for later use.
     pWtm->Save();
-    
+
     // Update the timezone rules and web page values.
     pWtm->UpdateTimezoneRules();
     pWtm->UpdateWebPage();
-    
+
     // Call back the user's save parameter handler if any was specified.
     if (pWtm->m_pSaveParamsCallback != NULL)
     {
@@ -520,7 +520,7 @@ String WiFiTimeManager::GetParamString(String name)
 // Arguments:
 //   name - String containing the name of the argument whose value will be
 //          returned.
-//   pBuf - Pointer to the buffer in which the parameter's value will be 
+//   pBuf - Pointer to the buffer in which the parameter's value will be
 //          returned.
 //   size - Size of the buffer pointed to by pBuf.
 //
@@ -566,7 +566,7 @@ void WiFiTimeManager::SendNtpPacket()
 {
     // Set all bytes in the buffer to 0.
     memset(m_PacketBuf, 0, NTP_PACKET_SIZE);
-    
+
     // Initialize values needed to form NTP request
     m_PacketBuf[0]  = 0b11100011;     // LI, Version, Mode.
     m_PacketBuf[1]  = 0;              // Stratum, or type of clock.
@@ -610,14 +610,14 @@ time_t WiFiTimeManager::GetUtcTime()
     {
         return m_pUtcGetCallback();
     }
-    
+
     // Discard any previously received packets.
-    while (m_Udp.parsePacket() > 0) 
+    while (m_Udp.parsePacket() > 0)
         ;
-    
+
     // Request a time packet.
     SendNtpPacket();
-    
+
     // We won't wait forever for an NTP reply.
     uint32_t beginWaitMs = millis();
     while ((millis() - beginWaitMs) < UDP_TIMEOUT_MS)
@@ -634,22 +634,22 @@ time_t WiFiTimeManager::GetUtcTime()
             secsSince1900 |= static_cast<uint32_t>(m_PacketBuf[41] << 16);
             secsSince1900 |= static_cast<uint32_t>(m_PacketBuf[42] << 8);
             secsSince1900 |= static_cast<uint32_t>(m_PacketBuf[43]);
-            
+
             // Subtract seventy years:
             uint32_t nowMs = millis();
-            uint32_t epochSec = (secsSince1900 - SEVENTY_YEARS) + 
+            uint32_t epochSec = (secsSince1900 - SEVENTY_YEARS) +
                                 (nowMs - beginWaitMs + MS_PER_SEC / 2) / MS_PER_SEC;
-              
+
             // Set the system time to UTC.
             setTime(static_cast<time_t>(epochSec));
             m_pUtcSetCallback(static_cast<time_t>(epochSec));
             lastMs = nowMs;
             m_UsingNetworkTime = true;
-            Serial.println("Got NTP time.");            
+            Serial.println("Got NTP time.");
             return static_cast<time_t>(epochSec);
         }
     }
-    
+
     // If we got here we were unable to connect to the NTP server.  It's possible
     // that we previously received good NTP data, but this time we didn't.
     m_UsingNetworkTime = false;
@@ -678,7 +678,7 @@ time_t WiFiTimeManager::GetLocalTime()
 
 /////////////////////////////////////////////////////////////////////////////
 // PrintDateTime
-// 
+//
 // Format and print a time_t value, with a time zone appended.
 //
 // Arguments:
@@ -710,7 +710,7 @@ const char *WiFiTimeManager::GetLocalTimezoneString()
     {
         GetLocalTime();
     }
-    
+
     // If m_pLclTimeChangeRule is still NULL, then return NULL as an error.
     return m_pLclTimeChangeRule == NULL ? NULL : m_pLclTimeChangeRule->abbrev;
 } // End GetLocalTimezoneString().
@@ -747,7 +747,7 @@ void WiFiTimeManager::SetUtcGetCallback(std::function<time_t()> func)
 /////////////////////////////////////////////////////////////////////////////
 void WiFiTimeManager::SetUtcSetCallback(std::function<void(time_t t)> func)
 {
-    m_pUtcSetCallback = (func == NULL) ? DefaultUtcSetCallback : func;    
+    m_pUtcSetCallback = (func == NULL) ? DefaultUtcSetCallback : func;
 } // End SetUtcSetCallback().
 
 

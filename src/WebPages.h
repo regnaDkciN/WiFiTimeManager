@@ -211,7 +211,7 @@ const char TZ_SELECT_STR[] = R"=====(
     <!-- HTML END -->
 </body>
 <script>
-  // JS START 
+  // JS START
   // Global variables.
 
   // Initialize globals on page load.
@@ -222,11 +222,11 @@ const char TZ_SELECT_STR[] = R"=====(
     // Hide or show the initial DST values selections.
     checkUseDst();
   }
-  
+
   // Initialize current timezone/dst settings.
   function initializeSettings() {
     // Refresh page since we might have arrived here due returning from save.
-    if (sessionStorage.getItem("doReload") == "true") { 
+    if (sessionStorage.getItem("doReload") == "true") {
       sessionStorage.setItem("doReload", "false");
       location.reload();
     }
@@ -237,12 +237,12 @@ const char TZ_SELECT_STR[] = R"=====(
         objs[i].onclick = function() {sessionStorage.setItem("doReload", "true");}
         break;
       }
-    }   
-    
+    }
+
     let tzJsonData = '*PUT_TZ_JSON_DATA_HERE*';
 
     let json = JSON.parse(tzJsonData);
-    let timeZone = json.TIMEZONE;    
+    let timeZone = json.TIMEZONE;
     let useDst = json.USE_DST == true;
     let dstStartWeek = json.DST_START_WEEK;
     let dstStartDow = json.DST_START_DOW;
@@ -259,21 +259,21 @@ const char TZ_SELECT_STR[] = R"=====(
     let ntpPort = json.NTP_PORT;
 
     // Initialize the select fields.
-    setSelectedIndex("timezoneOffset", timeZone);    
-    setSelectedIndex("weekNumber1", dstStartWeek);    
-    setSelectedIndex("dayOfWeek1", dstStartDow);    
-    setSelectedIndex("month1", dstStartMonth);    
-    setSelectedIndex("hour1", dstStartHour);    
-    setSelectedIndex("dstOffset", dstStartOffset);    
-    setSelectedIndex("weekNumber2", dstEndWeek);    
-    setSelectedIndex("dayOfWeek2", dstEndDow);    
-    setSelectedIndex("month2", dstEndMonth);    
+    setSelectedIndex("timezoneOffset", timeZone);
+    setSelectedIndex("weekNumber1", dstStartWeek);
+    setSelectedIndex("dayOfWeek1", dstStartDow);
+    setSelectedIndex("month1", dstStartMonth);
+    setSelectedIndex("hour1", dstStartHour);
+    setSelectedIndex("dstOffset", dstStartOffset);
+    setSelectedIndex("weekNumber2", dstEndWeek);
+    setSelectedIndex("dayOfWeek2", dstEndDow);
+    setSelectedIndex("month2", dstEndMonth);
     setSelectedIndex("hour2", dstEndHour);
-    
+
     document.getElementById("useDstField").checked = useDst;
     document.getElementById("dstEndString").value = tzAbbrev;
     document.getElementById("dstStartString").value = dstAbbrev;
-    
+
     document.getElementById("ntpServerAddr").value = ntpAddr;
     document.getElementById("ntpServerPort").value = ntpPort;
   }
