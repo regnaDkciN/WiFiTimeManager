@@ -422,14 +422,14 @@ void WiFiTimeManager::UpdateWebPage()
     // Update our web page with our user settable parameters in JSON form.
     WebPageString.replace("*PUT_TZ_JSON_DATA_HERE*", JsonStr);
 
-    // Save our web page for later use.
-    strncpy(WebPageBuffer, WebPageString.c_str(), MAX_WEB_PAGE_SIZE - 1);
-
     // If selected, call back to let user code add HTML and/or java script.
     if (m_pUpdateWebPageCallback != NULL)
     {
-        m_pUpdateWebPageCallback();
+        m_pUpdateWebPageCallback(WebPageString, MAX_WEB_PAGE_SIZE - 1);
     }
+
+    // Save our (possibly modified) web page for later use.
+    strncpy(WebPageBuffer, WebPageString.c_str(), MAX_WEB_PAGE_SIZE - 1);
 
 } // End UpdateWebPage().
 

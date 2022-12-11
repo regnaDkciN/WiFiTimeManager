@@ -121,11 +121,13 @@ void checkButton()
             }
 
             // start portal w delay
-            Serial.println("Starting config portal");
-            pWtm->setConfigPortalTimeout(120);
-            pWtm->setConfigPortalBlocking(false);
-            pWtm->setConfigPortalTimeout(0);
-            pWtm->startConfigPortal(AP_NAME);
+            if (!pWtm->IsConnected())
+            {
+                Serial.println("Starting config portal");
+                pWtm->setConfigPortalBlocking(false);
+                pWtm->setConfigPortalTimeout(0);
+                pWtm->startConfigPortal(AP_NAME);
+            }            
         }
     }
 }

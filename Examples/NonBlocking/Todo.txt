@@ -20,3 +20,6 @@ x Move pNtpServer and ntpPort from argument of Init() to settable parameter. (DI
 - Add status so user can see where time is coming from.
 - Work on non-blocking implementation and testing.
 - Add way for user to add parameters to setup screen
+- Pass reference to string and max size.  Remove GetWebPage() and GetMaxWebPageBufferSize().
+- Add web page markers for js one time entry code and js save code.
+- Add check for IsConnected() before calling startWebServer() when button is short pressed.

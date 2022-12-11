@@ -221,6 +221,8 @@ const char TZ_SELECT_STR[] = R"=====(
 
     // Hide or show the initial DST values selections.
     checkUseDst();
+    
+    // JS ONLOAD
   }
 
   // Initialize current timezone/dst settings.
@@ -234,7 +236,10 @@ const char TZ_SELECT_STR[] = R"=====(
     var objs = document.getElementsByTagName("button");
     for (var i = 0; i < objs.length; i++) {
       if (objs[i].type = "submit") {
-        objs[i].onclick = function() {sessionStorage.setItem("doReload", "true");}
+        objs[i].onclick = function() {
+          sessionStorage.setItem("doReload", "true");
+          // JS SAVE
+        }
         break;
       }
     }

@@ -242,12 +242,17 @@ public:
     //
     // Note: When this callback is invoked, the (long) NULL terminated string
     //       that represents the Setup web page is contained in the WebPageBuffer.
-    //       GetWebPage() will return a pointer to the buffer, and
-    //       GetMaxWebPageSize() will return the maximum size that is supported
-    //       by the WebPageBuffer.  The user is free to modify the string within
-    //       the buffer, but be careful not to exceed the maximum buffer size,
-    //       and be sure to NULL terminate the modified string before return.
-    //       Several comments appear within the WebPageBuffer that
+    //       The rWebPage argument of the callback is a reference to a String
+    //       that contains the web page that will be sent to the client.  It may
+    //       be modified as needed.  The maxSize argument of the callback is the
+    //       maximum size of the String in rWebPage.
+    //
+    //       Upon return from the callback, the contents of the rWebPage will be
+    //       safely copied into a buffer that will be sent to the client.  If
+    //       the size of the (modified) rWebPage exceeds  the value of maxSize,
+    //       the buffer will be truncated, so be careful.
+    //
+    //       Several comments appear within the rWebPage string that
     //       may be employed to locate specific places within the standard
     //       web page.  These are:
     //          "<!-- HTML START -->"
@@ -259,12 +264,21 @@ public:
     //          "// JS START"
     //              This marks the start of the java script, just after the
     //              <script> declaration.
+    //          "// JS ONLOAD"
+    //              This marks a spot within the onload() function where
+    //              java script initialization code can be added.
+    //          "// JS SAVE"
+    //              This marks a spot within the function that is executed when
+    //              the submit (save) button is pressed.  It can be used to 
+    //              perform java script save actions.
     //          "// JS END"
     //              This marks the of of the java script, just before the
     //              </script> declaration.
     //
     /////////////////////////////////////////////////////////////////////////////
-    void SetUpdateWebPageCallback(std::function<void()> func) { m_pUpdateWebPageCallback = func; }
+    void SetUpdateWebPageCallback(
+        std::function<void(String &rWebPage, uint32_t maxSize)> func)
+        { m_pUpdateWebPageCallback = func; }
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -386,8 +400,6 @@ public:
     uint32_t GetDstEndMonth()   const { return m_Params.m_DstEndRule.month; }
     uint32_t GetDstEndHour()    const { return m_Params.m_DstEndRule.hour; }
     int32_t  GetDstEndOfst()    const { return m_Params.m_DstEndRule.offset; }
-    char    *GetWebPage()             { return WebPageBuffer; }
-    uint32_t GetMaxWebPageSize() const{ return MAX_WEB_PAGE_SIZE; }
     char    *GetNtpAddr()             { return m_Params.m_NtpAddr; }
     uint32_t GetNtpPort()       const { return m_Params.m_NtpPort; }
     bool     UsingNetworkTime() const { return m_UsingNetworkTime; }
@@ -594,6 +606,15 @@ private:
 
 
     /////////////////////////////////////////////////////////////////////////////
+    // GetWebPage()
+    //
+    // Returns a pointer to the web page buffer.
+    //
+    /////////////////////////////////////////////////////////////////////////////
+    char *GetWebPage() { return WebPageBuffer; }
+    
+
+    /////////////////////////////////////////////////////////////////////////////
     // Private static constants.
     /////////////////////////////////////////////////////////////////////////////
     static const char    *pPrefSavedStateLabel;
@@ -627,7 +648,8 @@ private:
     std::function<void()> m_pSaveParamsCallback;     // Pointer to save params callback.
     std::function<time_t()> m_pUtcGetCallback;       // Pointer to get UTC callback.
     std::function<void(time_t t)> m_pUtcSetCallback; // Pointer to set UTC callback.
-    std::function<void()> m_pUpdateWebPageCallback;  // Pointer to save params callback.
+    std::function<void(String &rWebPage, uint32_t maxSize)> m_pUpdateWebPageCallback;
+                                        // Pointer to update web page callback.
     uint8_t        m_PacketBuf[NTP_PACKET_SIZE]; // Buffer to hold in & out packets.
 
 
