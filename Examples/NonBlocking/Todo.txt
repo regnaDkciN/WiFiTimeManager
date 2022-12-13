@@ -2,7 +2,6 @@ TODO:
 =====
 - Implement and test DS3231 code.
 - Explain use of "Partition Scheme" in Arduino to set size of memory used by SPIFFS - set to "Huge APP"
-- Add example code to demonstrate user adding parameters to setup screen
 
 
 DONE:
@@ -23,3 +22,4 @@ x Move pNtpServer and ntpPort from argument of Init() to settable parameter. (DI
 - Pass reference to string and max size.  Remove GetWebPage() and GetMaxWebPageBufferSize().
 - Add web page markers for js one time entry code and js save code.
 - Add check for IsConnected() before calling startWebServer() when button is short pressed.
+- Add example code to demonstrate user adding parameters to setup screen

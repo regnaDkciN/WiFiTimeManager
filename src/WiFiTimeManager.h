@@ -382,6 +382,61 @@ public:
 
 
     /////////////////////////////////////////////////////////////////////////////
+    // GetParamString()
+    //
+    // Returns the last value read of the specified timezone parameter.
+    //
+    // Arguments:
+    //   name - String containing the name of the argument whose value will be
+    //          returned.
+    //
+    // Returns:
+    //    Always returns the String value of the specified argument if successful,
+    //    or an empty String on failure.
+    //
+    /////////////////////////////////////////////////////////////////////////////
+    String GetParamString(String name);
+
+
+    /////////////////////////////////////////////////////////////////////////////
+    // GetParamChars()
+    //
+    // Returns the last value read of the specified timezone parameter.
+    //
+    // Arguments:
+    //   name - String containing the name of the argument whose value will be
+    //          returned.
+    //   pBuf - Pointer to the buffer in which the parameter's value will be
+    //          returned.
+    //   size - Size of the buffer pointed to by pBuf.
+    //
+    // Returns:
+    //    Returns the value passed as pBuf.  The returned buffer will contain the
+    //    value of the specified parameter if successful, or an empty buffer on
+    //    failure.
+    //
+    /////////////////////////////////////////////////////////////////////////////
+    char  *GetParamChars(String name, char *buf, size_t size);
+
+
+    /////////////////////////////////////////////////////////////////////////////
+    // GetParamInt()
+    //
+    // Returns the last value read of the specified timezone parameter as an
+    // integer.
+    //
+    // Arguments:
+    //   name - String containing the name of the argument whose value will be
+    //          returned.
+    //
+    // Returns:
+    //    Returns the int value of the specified timezone parameter.
+    //
+    /////////////////////////////////////////////////////////////////////////////
+    int    GetParamInt(String name);
+
+
+    /////////////////////////////////////////////////////////////////////////////
     // Getters and setters.
     /////////////////////////////////////////////////////////////////////////////
     bool     IsConnected()            { return getLastConxResult() == WL_CONNECTED; }
@@ -539,61 +594,6 @@ private:
     //
     /////////////////////////////////////////////////////////////////////////////
     static void DefaultUtcSetCallback(time_t t) { setTime(t); }
-
-
-    /////////////////////////////////////////////////////////////////////////////
-    // GetParamString()
-    //
-    // Returns the last value read of the specified timezone parameter.
-    //
-    // Arguments:
-    //   name - String containing the name of the argument whose value will be
-    //          returned.
-    //
-    // Returns:
-    //    Always returns the String value of the specified argument if successful,
-    //    or an empty String on failure.
-    //
-    /////////////////////////////////////////////////////////////////////////////
-    String GetParamString(String name);
-
-
-    /////////////////////////////////////////////////////////////////////////////
-    // GetParamChars()
-    //
-    // Returns the last value read of the specified timezone parameter.
-    //
-    // Arguments:
-    //   name - String containing the name of the argument whose value will be
-    //          returned.
-    //   pBuf - Pointer to the buffer in which the parameter's value will be
-    //          returned.
-    //   size - Size of the buffer pointed to by pBuf.
-    //
-    // Returns:
-    //    Returns the value passed as pBuf.  The returned buffer will contain the
-    //    value of the specified parameter if successful, or an empty buffer on
-    //    failure.
-    //
-    /////////////////////////////////////////////////////////////////////////////
-    char  *GetParamChars(String name, char *buf, size_t size);
-
-
-    /////////////////////////////////////////////////////////////////////////////
-    // GetParamInt()
-    //
-    // Returns the last value read of the specified timezone parameter as an
-    // integer.
-    //
-    // Arguments:
-    //   name - String containing the name of the argument whose value will be
-    //          returned.
-    //
-    // Returns:
-    //    Returns the int value of the specified timezone parameter.
-    //
-    /////////////////////////////////////////////////////////////////////////////
-    int    GetParamInt(String name);
 
 
     /////////////////////////////////////////////////////////////////////////////

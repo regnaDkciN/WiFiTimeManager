@@ -4,3 +4,6 @@ Examples/NonBlocking/WiFiTimeManager.h
 Examples/Blocking/WebPages.h
 Examples/Blocking/WiFiTimeManager.cpp
 Examples/Blocking/WiFiTimeManager.h
+Examples/EditWebPage/WiFiTimeManager.h
+Examples/EditWebPage/WiFiTimeManager.cpp
+Examples/EditWebPage/WebPages.h
