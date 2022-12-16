@@ -221,8 +221,12 @@ bool WiFiTimeManager::process()
         {
             // Delay briefly to let the network settle, then attempt to get
             // the time from the network.
+            UpdateTimezoneRules();
             delay(500);
             GetUtcTime();
+            
+            // Make sure the wifi manager stops.
+            stopWebPortal();
         }
     }
 
@@ -398,7 +402,7 @@ void WiFiTimeManager::UpdateWebPage()
 
     // Create our JSON document containing all of our user settable parameters.
     DynamicJsonDocument doc(MAX_JSON_SIZE);
-    doc["TIMEZONE"] = GetTzOfst();;
+    doc["TIMEZONE"] = GetTzOfst();
     doc["USE_DST"] = GetUseDst();
     doc["DST_START_WEEK"] = GetDstStartWk();
     doc["DST_START_DOW"] = GetDstStartDow();

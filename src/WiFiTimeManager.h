@@ -437,6 +437,16 @@ public:
 
 
     /////////////////////////////////////////////////////////////////////////////
+    // UpdateTimezoneRules()
+    //
+    // Update our timezone rules.  Should be called any time timezone or DST
+    // data changes.
+    //
+    /////////////////////////////////////////////////////////////////////////////
+    void UpdateTimezoneRules();
+
+
+    /////////////////////////////////////////////////////////////////////////////
     // Getters and setters.
     /////////////////////////////////////////////////////////////////////////////
     bool     IsConnected()            { return getLastConxResult() == WL_CONNECTED; }
@@ -476,18 +486,18 @@ public:
     void SetTzOfst(int32_t v)         { m_Params.m_TzOfst = v; }
     void SetTzAbbrev(char *v)         { strncpy(m_Params.m_DstEndRule.abbrev, v, sizeof(m_Params.m_DstStartRule.abbrev) - 1); }
     void SetUseDst(bool v)            { m_Params.m_UseDst = v; }
-    void SetDstOfst(int32_t v)        { m_Params.m_DstOfst = v; }
+    void SetDstOfst(int32_t v)        { m_Params.m_DstOfst = (v <= OFFSET_MID ? OFFSET_MIN : OFFSET_MAX); }
     void SetDstAbbrev(char *v)        { strncpy(m_Params.m_DstStartRule.abbrev, v, sizeof(m_Params.m_DstStartRule.abbrev) - 1); }
     void SetDstStartWk(uint32_t v)    { m_Params.m_DstStartRule.week = constrain(v, WK_MIN, WK_MAX); }
     void SetDstStartDow(uint32_t v)   { m_Params.m_DstStartRule.dow = constrain(v, DOW_MIN, DOW_MAX); }
     void SetDstStartMonth(uint32_t v) { m_Params.m_DstStartRule.month = constrain(v, MONTH_MIN, MONTH_MAX); }
     void SetDstStartHour(uint32_t v)  { m_Params.m_DstStartRule.hour = constrain(v, HOUR_MIN, HOUR_MAX); }
-    void SetDstStartOfst(int32_t v)   { m_Params.m_DstStartRule.offset = (v <= OFFSET_MID ? OFFSET_MIN : OFFSET_MAX); }
+    void SetDstStartOfst(int32_t v)   { m_Params.m_DstStartRule.offset = v; }
     void SetDstEndWk(uint32_t v)      { m_Params.m_DstEndRule.week = constrain(v, WK_MIN, WK_MAX); }
     void SetDstEndDow(uint32_t v)     { m_Params.m_DstEndRule.dow = constrain(v, DOW_MIN, DOW_MAX); }
     void SetDstEndMonth(uint32_t v)   { m_Params.m_DstEndRule.month = constrain(v, MONTH_MIN, MONTH_MAX); }
     void SetDstEndHour(uint32_t v)    { m_Params.m_DstEndRule.hour = constrain(v, HOUR_MIN, HOUR_MAX); }
-    void SetDstEndOfst(int32_t v)     { m_Params.m_DstEndRule.offset = (v <= OFFSET_MID ? OFFSET_MIN : OFFSET_MAX); }
+    void SetDstEndOfst(int32_t v)     { m_Params.m_DstEndRule.offset = v; }
     static const uint32_t MIN_NTP_UPDATE_SEC = 4;
     void SetMinNtpRate(uint32_t r)    { m_MinNtpRateSec = r >= MIN_NTP_UPDATE_SEC ? r : MIN_NTP_UPDATE_SEC; }
     void SetNtpAddr(char *v)          { strncpy(m_Params.m_NtpAddr, v, sizeof(m_Params.m_NtpAddr) - 1); }
@@ -514,16 +524,6 @@ private:
     void resetSettings() {WiFiManager::resetSettings(); }
     void setMenu(std::vector<const char*>& menu) {WiFiManager::setMenu(menu); }
     void setMenu(const char* menu[], uint8_t size) {WiFiManager::setMenu(menu, size); }
-
-
-    /////////////////////////////////////////////////////////////////////////////
-    // UpdateTimezoneRules()
-    //
-    // Update our timezone rules.  Should be called any time timezone or DST
-    // data changes.
-    //
-    /////////////////////////////////////////////////////////////////////////////
-    void UpdateTimezoneRules();
 
 
     /////////////////////////////////////////////////////////////////////////////

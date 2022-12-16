@@ -7,3 +7,7 @@ Examples/Blocking/WiFiTimeManager.h
 Examples/EditWebPage/WiFiTimeManager.h
 Examples/EditWebPage/WiFiTimeManager.cpp
 Examples/EditWebPage/WebPages.h
+Examples/RTCExample/WiFiTimeManager.h
+Examples/RTCExample/WiFiTimeManager.cpp
+Examples/RTCExample/WebPages.h
+Examples/RTCExample/TzData.txt

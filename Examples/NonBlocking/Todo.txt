@@ -2,6 +2,7 @@ TODO:
 =====
 - Implement and test DS3231 code.
 - Explain use of "Partition Scheme" in Arduino to set size of memory used by SPIFFS - set to "Huge APP"
+- If oscillatorStopFlag() returns 'true' then DS3231 time is invalid (DS323x_Generic library).
 
 
 DONE:
