@@ -2,13 +2,24 @@
  * WiFiManager advanced demo, contains advanced configurartion options
  * Implements TRIGGEN_PIN button press, press for ondemand configportal, hold for 3 seconds for reset settings.
  */
+ 
+ 
+// Comment out the following line if no RTC is connected.
+#define USE_RTC 1
+
 #include <String>               // For String class.
+#if defined USE_RTC
+    #include <DS323x_Generic.h> // https://github.com/khoih-prog/DS323x_Generic
+#endif
 #include "WiFiTimeManager.h"    // Manages timezone and dst.
 
 #define TRIGGER_PIN 14
 #define NET_CLOCK_PIN 12
 #define LOCAL_CLOCK_PIN 27
 
+#if defined USE_RTC
+    static DS323x rtc;
+#endif
 static WiFiTimeManager *pWtm;
 static bool WmSeparateButton = true;
 static bool WmBlocking = false;
@@ -56,16 +67,20 @@ void PreOtaUpdateCallback()
     Serial.println("PreOtaUpdateCallback");
 }
 
-time_t UtcGetCallback()
-{
-    Serial.println("UtcGetCallback");
-    return 0;
-}
+#if defined USE_RTC
+    time_t UtcGetCallback()
+    {
+        Serial.println("UtcGetCallback");
+        DateTime t = rtc.now();
+        return t.get_time_t();
+    }
 
-void UtcSetCallback(time_t t)
-{
-    Serial.println("UtcSetCallback");    
-}
+    void UtcSetCallback(time_t t)
+    {
+        Serial.println("UtcSetCallback");
+        rtc.now(DateTime(t));
+    }
+#endif
 
 void UpdateWebPageCallback(String &rWebPage, uint32_t maxSize)
 {
@@ -100,8 +115,20 @@ void setup()
     digitalWrite(NET_CLOCK_PIN, HIGH);
     delay(1000);
     digitalWrite(NET_CLOCK_PIN, LOW);
+    
+#if defined USE_RTC
+    // Initialize I2C for RTC.
+    Wire.begin();
+    rtc.attach(Wire);
+    // If RTC is uninitialized, then set a default time.
+    if (rtc.oscillatorStopFlag())
+    {
+        const time_t UTC_2023_START = 1672531200;
+        rtc.now(DateTime(UTC_2023_START));
+    }
+#endif
 
-
+    // Init a pointer to our WiFiTimeManager instance.
     pWtm = WiFiTimeManager::Instance();
     
     // Web page is updated in init, so setup callback before Init() is called.
@@ -121,9 +148,10 @@ void setup()
     
     pWtm->setSaveParamsCallback(SaveParamsCallback);
     
-//    pWtm->SetUtcGetCallback(UtcGetCallback);
-//    pWtm->SetUtcSetCallback(UtcSetCallback);
-    
+#if defined USE_RTC
+    pWtm->SetUtcGetCallback(UtcGetCallback);
+    pWtm->SetUtcSetCallback(UtcSetCallback);
+#endif    
 
     // Attempt to connect to the network.
     pWtm->setConfigPortalBlocking(WmBlocking);
@@ -136,6 +164,7 @@ void setup()
     {
         //if you get here you have connected to the WiFi
         Serial.println("connected...yeey :)");
+        pWtm->GetUtcTime();
     }
 }
 
@@ -203,9 +232,9 @@ void loop()
         time_t lclTime = pWtm->GetLocalTime();
         pWtm->PrintDateTime(utcTime, "UTC");
         pWtm->PrintDateTime(lclTime, pWtm->GetLocalTimezoneString());
-        setLeds(pWtm->UsingNetworkTime());
         Serial.println();
     }
+    setLeds(pWtm->UsingNetworkTime());
     delay(1);
 
 }

@@ -189,9 +189,9 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
     // Set to dark theme.
     setClass("invert");
 
-    // Set our default time to the start of 2022.
-    const time_t START_2022_UNIX_TIME = 1640995200;
-    setTime(START_2022_UNIX_TIME);
+    // Set our default time to the start of 2023.
+    const time_t UTC_2023_START = 1672531200;
+    setTime(UTC_2023_START);
 
     return true;
 } // End Init().
