@@ -2,6 +2,7 @@ TODO:
 =====
 - Test DS3231 code.
 - Explain use of "Partition Scheme" in Arduino to set size of memory used by SPIFFS - set to "Huge APP"
+- Replace Serial.print???() with disableable functions.
 
 
 DONE:

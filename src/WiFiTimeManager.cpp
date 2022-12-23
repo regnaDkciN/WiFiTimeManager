@@ -71,8 +71,10 @@ WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_LastTime(), m_Udp(),
     // If DST is not used, then fix the timezone rules.
     UpdateTimezoneRules();
 
-    // Initialize clock to on Jan 1 1970. In seconds, that's 2208988800.
-    setTime(SEVENTY_YEARS);
+    // Initialize clock to the start of 2023.
+    const time_t UTC_2023_START = 1672531200;
+    setTime(UTC_2023_START);
+    
 } // End constructor.
 
 
@@ -188,10 +190,6 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
     setConfigPortalBlocking(true);
     // Set to dark theme.
     setClass("invert");
-
-    // Set our default time to the start of 2023.
-    const time_t UTC_2023_START = 1672531200;
-    setTime(UTC_2023_START);
 
     return true;
 } // End Init().

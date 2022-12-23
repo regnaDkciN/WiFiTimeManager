@@ -5,7 +5,7 @@
  
  
 // Comment out the following line if no RTC is connected.
-#define USE_RTC 1
+// #define USE_RTC 1
 
 #include <String>               // For String class.
 #if defined USE_RTC
@@ -116,21 +116,23 @@ void setup()
     delay(1000);
     digitalWrite(NET_CLOCK_PIN, LOW);
     
+    // Init a pointer to our WiFiTimeManager instance.
+    // This should be done before RTC init since the WiFiTimeManager
+    // gets created on the first call to WiFiManager::Instance() and it
+    // initializes a default time that the RTC may want to override.
+    pWtm = WiFiTimeManager::Instance();
+    
 #if defined USE_RTC
     // Initialize I2C for RTC.
     Wire.begin();
     rtc.attach(Wire);
-    // If RTC is uninitialized, then set a default time.
+    // If RTC is uninitialized, then set a default time of the start of 2023.
     if (rtc.oscillatorStopFlag())
     {
-        const time_t UTC_2023_START = 1672531200;
-        rtc.now(DateTime(UTC_2023_START));
+        rtc.now(DateTime(2023, 1, 1, 0, 0, 0));
     }
 #endif
 
-    // Init a pointer to our WiFiTimeManager instance.
-    pWtm = WiFiTimeManager::Instance();
-    
     // Web page is updated in init, so setup callback before Init() is called.
     pWtm->SetUpdateWebPageCallback(UpdateWebPageCallback);
     
