@@ -5,7 +5,7 @@
  
  
 // Comment out the following line if no RTC is connected.
-// #define USE_RTC 1
+#define USE_RTC 1
 
 #include <String>               // For String class.
 #if defined USE_RTC
@@ -78,7 +78,10 @@ void PreOtaUpdateCallback()
     void UtcSetCallback(time_t t)
     {
         Serial.println("UtcSetCallback");
+        // Push the new time to the RTC.
         rtc.now(DateTime(t));
+        // Reset the flag that inidcates that the RTC time is not valid.
+        rtc.oscillatorStopFlag(false);
     }
 #endif
 
@@ -126,10 +129,12 @@ void setup()
     // Initialize I2C for RTC.
     Wire.begin();
     rtc.attach(Wire);
-    // If RTC is uninitialized, then set a default time of the start of 2023.
+    // If the RTC is uninitialized, then set a default time (the start of 2023).
     if (rtc.oscillatorStopFlag())
     {
+        Serial.println("RTC uninitialized.");
         rtc.now(DateTime(2023, 1, 1, 0, 0, 0));
+        rtc.oscillatorStopFlag(false);
     }
 #endif
 

@@ -267,7 +267,7 @@ void WiFiTimeManager::ResetData()
 bool WiFiTimeManager::Save() const
 {
     bool saved = false;
-Serial.println("Saving Data");
+    Serial.println("Saving Data");
 
     // Read our currently saved state.  If it hasn't changed, then don't
     // bother to do the save in order to conserve writes to NVS.
@@ -317,7 +317,7 @@ bool WiFiTimeManager::Restore()
 {
     // Assume we're gonna fail.
     bool succeeded = false;
-Serial.println("Restoring Saved Data");
+    Serial.println("Restoring Saved Data");
     // Restore our state data to a temporary structure.
     TimeParameters cachedState;
     Preferences prefs;
