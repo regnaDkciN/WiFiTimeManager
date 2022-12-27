@@ -470,7 +470,8 @@ public:
     bool     UsingNetworkTime() const { return m_UsingNetworkTime; }
 
     // Min and max constants for selectable fields.
-    static const uint32_t WK_MIN     = Last;    // Last
+    // Constants (Last, Fourth, ...) defined in Timezone_Generic.hpp. 
+    static const uint32_t WK_MIN     = Last;    // Last 
     static const uint32_t WK_MAX     = Fourth;  // Fourth
     static const uint32_t DOW_MIN    = Sun;     // Sunday
     static const uint32_t DOW_MAX    = Sat;     // Saturday
