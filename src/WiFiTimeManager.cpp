@@ -54,10 +54,10 @@ static WiFiManagerParameter ntpPortField(NULL);
 // Initialize our instance data.
 //
 /////////////////////////////////////////////////////////////////////////////////
-WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_LastTime(), m_Udp(),
-                                     m_UsingNetworkTime(false),
-                                     m_Params(), m_Timezone(m_Params.m_DstStartRule,
-                                     m_Params.m_DstEndRule),
+WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_PrintLevel(PL_DFLT_MASK),
+                                     m_LastTime(), m_Udp(),
+                                     m_UsingNetworkTime(false), m_Params(),
+                                     m_Timezone(m_Params.m_DstStartRule, m_Params.m_DstEndRule),
                                      m_MinNtpRateSec(60 * 60),
                                      m_pLclTimeChangeRule(NULL),
                                      m_pSaveParamsCallback(NULL),
@@ -132,10 +132,10 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
     // save our default values.
     if (!Restore())
     {
-        Serial.println("Restore failed");
+        WTMPrint(PL_WARN_BP, "Restore failed\n");
         if (!Save())
         {
-            Serial.println("Save failed");
+            WTMPrint(PL_WARN_BP, "Save failed\n");
             return false;
         }
     }
@@ -267,7 +267,7 @@ void WiFiTimeManager::ResetData()
 bool WiFiTimeManager::Save() const
 {
     bool saved = false;
-    Serial.println("Saving Data");
+    WTMPrint(PL_INFO_BP, "Saving Data\n");
 
     // Read our currently saved state.  If it hasn't changed, then don't
     // bother to do the save in order to conserve writes to NVS.
@@ -286,7 +286,7 @@ bool WiFiTimeManager::Save() const
         memcmp(&nvsState, &m_Params, sizeof(TimeParameters)))
     {
         // Data has changed so go ahead and save it.
-        Serial.println("\nTimeSettings - saving to NVS.");
+        WTMPrint(PL_INFO_BP, "\nTimeSettings - saving to NVS.\n");
         saved =
           (prefs.putBytes(pPrefSavedStateLabel, &m_Params, sizeof(TimeParameters)) ==
               sizeof(TimeParameters));
@@ -295,7 +295,7 @@ bool WiFiTimeManager::Save() const
     {
         // Data has not changed.  Do nothing.
         saved = true;
-        Serial.println("\nTimeSettings - not saving to NVS.");
+        WTMPrint(PL_INFO_BP, "\nTimeSettings - not saving to NVS.\n");
     }
     prefs.end();
 
@@ -317,7 +317,7 @@ bool WiFiTimeManager::Restore()
 {
     // Assume we're gonna fail.
     bool succeeded = false;
-    Serial.println("Restoring Saved Data");
+    WTMPrint(PL_INFO_BP, "Restoring Saved Data\n");
     // Restore our state data to a temporary structure.
     TimeParameters cachedState;
     Preferences prefs;
@@ -381,8 +381,13 @@ void WiFiTimeManager::UpdateTimezoneRules()
     {
         m_Timezone.setRules(m_Params.m_DstEndRule, m_Params.m_DstEndRule);
     }
-    m_Timezone.display_DST_Rule();
-    m_Timezone.display_STD_Rule();
+    
+    // Display debug info if debug display is enabled.
+    if (PL_DEBUG_BP && m_PrintLevel)
+    {
+        m_Timezone.display_DST_Rule();
+        m_Timezone.display_STD_Rule();
+    }
 } // End UpdateTimezoneRules().
 
 
@@ -419,7 +424,7 @@ void WiFiTimeManager::UpdateWebPage()
     // Convert the JSON document to a String.
     String JsonStr;
     serializeJson(doc, JsonStr);
-    Serial.println(JsonStr);
+    WTMPrint(PL_DEBUG_BP, JsonStr);
 
     // Update our web page with our user settable parameters in JSON form.
     WebPageString.replace("*PUT_TZ_JSON_DATA_HERE*", JsonStr);
@@ -450,7 +455,7 @@ void WiFiTimeManager::SaveParamCallback()
 {
     WiFiTimeManager *pWtm = Instance();
 
-    Serial.println("SaveParamCallback");
+    pWtm->WTMPrint(PL_INFO_BP, "SaveParamCallback\n");
     // Stuff the (possibly) new values into our local data.
     char buf[TimeParameters::MAX_NTP_ADDR];
     int tzOfst = pWtm->GetParamInt("timezoneOffset");
@@ -647,7 +652,7 @@ time_t WiFiTimeManager::GetUtcTime()
             m_pUtcSetCallback(static_cast<time_t>(epochSec));
             lastMs = nowMs;
             m_UsingNetworkTime = true;
-            Serial.println("Got NTP time.");
+            WTMPrint(PL_INFO_BP, "Got NTP time.\n");
             return static_cast<time_t>(epochSec);
         }
     }
@@ -655,7 +660,7 @@ time_t WiFiTimeManager::GetUtcTime()
     // If we got here we were unable to connect to the NTP server.  It's possible
     // that we previously received good NTP data, but this time we didn't.
     m_UsingNetworkTime = false;
-    Serial.println("No NTP Response!");
+    WTMPrint(PL_WARN_BP, "No NTP Response!\n");
 
     return m_pUtcGetCallback();
 } // End GetUtcTime();
@@ -753,5 +758,52 @@ void WiFiTimeManager::SetUtcSetCallback(std::function<void(time_t t)> func)
 } // End SetUtcSetCallback().
 
 
+/////////////////////////////////////////////////////////////////////////////
+// WTMPrint()
+//
+// Print the specified data if the specified level matches the m_PrintLevel
+// that was set via SetPrintLevel().
+//
+// Arguments:
+//   level - The bit pattern of the types of data that may be printed.
+//   fmt   - The printf() style format string.
+//   ...   - Arguments to the fmt string.
+/////////////////////////////////////////////////////////////////////////////
+void WiFiTimeManager::WTMPrint(uint32_t level, const char *fmt...) const
+{
+    if (m_PrintLevel & level)
+    {
+        // Set up our variable argument list.
+        va_list args;
+        va_start(args, fmt);
+        
+        // Print the message, prepended with our ID.
+        Serial.print("[WTM] ");
+        Serial.printf(fmt, args);        
+    }
+} // End WTMPrint().
+    
+
+/////////////////////////////////////////////////////////////////////////////
+// WTMPrint()
+//
+// Print the specified data if the specified level matches the m_PrintLevel
+// that was set via SetPrintLevel().
+//
+// Arguments:
+//   level - The bit pattern of the types of data that may be printed.
+//   fmt   - The printf() style format string.
+//   ...   - Arguments to the fmt string.
+/////////////////////////////////////////////////////////////////////////////
+void WiFiTimeManager::WTMPrint(uint32_t level, String &str) const
+{
+    if (m_PrintLevel & level)
+    {
+        // Print the message, prepended with our ID.
+        Serial.print("[WTM] ");
+        Serial.print(str);        
+    }
+} // End WTMPrint().
+    
 
 

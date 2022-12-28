@@ -1,7 +1,6 @@
 TODO:
 =====
 - Explain use of "Partition Scheme" in Arduino to set size of memory used by SPIFFS - set to "Huge APP"
-- Replace Serial.print???() with disableable functions.
 
 
 DONE:
@@ -26,3 +25,4 @@ x Move pNtpServer and ntpPort from argument of Init() to settable parameter. (DI
 - Implement DS3231 code.
 - If oscillatorStopFlag() returns 'true' then DS3231 time is invalid (DS323x_Generic library).
 - Test DS3231 code.
+- Replace Serial.print???() with disableable functions.

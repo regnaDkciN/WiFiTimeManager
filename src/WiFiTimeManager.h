@@ -482,6 +482,32 @@ public:
     static const uint32_t OFFSET_MIN = 30;      // 30 minutes
     static const uint32_t OFFSET_MAX = 60;      // 60 minutes
     static const uint32_t OFFSET_MID = (OFFSET_MAX + OFFSET_MIN) / 2; // Middle of offset range.
+    
+    // Print level values.  Use bit patterns to define levels.  The BP(v) macro
+    // below creates a bit pattern based on the given value.  Note that the
+    // BP() macro is only valid for values greater than zero.  The MASK(v) macro
+    // below creates a bit mask that includes its level and all lower levels.
+    // Note that the MASK() macro is valid for values greater than or equal to 
+    // zero.
+    #define BP(v)   (1 << ((v) - 1)) 
+    #define MASK(v) ((1 << (v)) - 1)
+    static const uint32_t PL_NONE  = 0;                   // No status will be printed.
+    static const uint32_t PL_WARN  = 1;                   // Display warnings.
+    static const uint32_t PL_INFO  = 2;                   // Display informational info.
+    static const uint32_t PL_DEBUG = 3;                   // Display debug info.
+    static const uint32_t PL_DFLT  = PL_WARN;             // Default display level = warn.
+    
+    static const uint32_t PL_NONE_BP  = 0;                // No status will be printed.
+    static const uint32_t PL_WARN_BP  = BP(PL_WARN);      // Display warnings.
+    static const uint32_t PL_INFO_BP  = BP(PL_INFO);      // Display informational info.
+    static const uint32_t PL_DEBUG_BP = BP(PL_DEBUG);     // Display debug info.
+    static const uint32_t PL_DFLT_BP  = PL_WARN_BP;       // Default display level = warn.
+
+    static const uint32_t PL_NONE_MASK  = 0;              // No status will be printed.
+    static const uint32_t PL_WARN_MASK  = MASK(PL_WARN);  // Display warnings.
+    static const uint32_t PL_INFO_MASK  = MASK(PL_INFO);  // Display informational info.
+    static const uint32_t PL_DEBUG_MASK = MASK(PL_DEBUG); // Display debug info.
+    static const uint32_t PL_DFLT_MASK  = PL_WARN_MASK;   // Default display level = warn.
 
 
     void SetTzOfst(int32_t v)         { m_Params.m_TzOfst = v; }
@@ -503,6 +529,7 @@ public:
     void SetMinNtpRate(uint32_t r)    { m_MinNtpRateSec = r >= MIN_NTP_UPDATE_SEC ? r : MIN_NTP_UPDATE_SEC; }
     void SetNtpAddr(char *v)          { strncpy(m_Params.m_NtpAddr, v, sizeof(m_Params.m_NtpAddr) - 1); }
     void SetNtpPort(uint32_t p)       { m_Params.m_NtpPort = constrain(p, 1, 65535); }
+    void SetPrintLevel(uint32_t lvl)  { m_PrintLevel = MASK(lvl); }
 
 protected:
 
@@ -614,6 +641,22 @@ private:
     /////////////////////////////////////////////////////////////////////////////
     char *GetWebPage() { return WebPageBuffer; }
     
+    
+    /////////////////////////////////////////////////////////////////////////////
+    // WTMPrint()
+    //
+    // Print the specified data if the specified level matches the m_PrintLevel
+    // that was set via SetPrintLevel().  Note that this method is overloaded
+    // to work with null terminated strings, and String objects.
+    //
+    // Arguments:
+    //   level - The bit pattern of the types of data that may be printed.
+    //   fmt   - The printf() style format string.
+    //   ...   - Arguments to the fmt string.
+    //   str   - String instance to print.
+    /////////////////////////////////////////////////////////////////////////////
+    void WTMPrint(uint32_t level, const char *fmt...) const;
+    void WTMPrint(uint32_t level, String &str) const;
 
     /////////////////////////////////////////////////////////////////////////////
     // Private static constants.
@@ -630,20 +673,19 @@ private:
 
     // Allocate enough space to buffer twice the size of our original web page.
     // This allows for the user to add HTML and/or java script if needed.
-    // This is wasteful, but easy.  %%%jmc Possibly this in the future.
+    // This is wasteful, but easy.  %%%jmc Possibly fix this in the future.
     static const size_t   MAX_WEB_PAGE_SIZE = 2 * sizeof(TZ_SELECT_STR) + MAX_JSON_SIZE;
     static char           WebPageBuffer[MAX_WEB_PAGE_SIZE];
 
     /////////////////////////////////////////////////////////////////////////////
     // Private instance data.
     /////////////////////////////////////////////////////////////////////////////
+    uint32_t       m_PrintLevel;        // Status print level selection.
     time_t         m_LastTime;          // Timestamp from the last NTP packet.
     WiFiUDP        m_Udp;               // UDP instance for tx & rx of UDP packets.
     bool           m_UsingNetworkTime;  // True if using time from NTP server.
     TimeParameters m_Params;            // Timezone and DST data.
     Timezone       m_Timezone;          // Timezone class for TZ and DST change.
-    const char    *m_pNtpServer;        // Ntp server address string pointer.
-    unsigned       m_NtpPort;           // Port used for NTP requests.
     uint32_t       m_MinNtpRateSec;     // Minimum seconds between NTP updates.
     TimeChangeRule *m_pLclTimeChangeRule; // Pointer to time change rule in use.
     std::function<void()> m_pSaveParamsCallback;     // Pointer to save params callback.
