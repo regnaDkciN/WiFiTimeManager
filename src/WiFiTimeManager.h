@@ -269,7 +269,7 @@ public:
     //              java script initialization code can be added.
     //          "// JS SAVE"
     //              This marks a spot within the function that is executed when
-    //              the submit (save) button is pressed.  It can be used to 
+    //              the submit (save) button is pressed.  It can be used to
     //              perform java script save actions.
     //          "// JS END"
     //              This marks the of of the java script, just before the
@@ -470,8 +470,8 @@ public:
     bool     UsingNetworkTime() const { return m_UsingNetworkTime; }
 
     // Min and max constants for selectable fields.
-    // Constants (Last, Fourth, ...) defined in Timezone_Generic.hpp. 
-    static const uint32_t WK_MIN     = Last;    // Last 
+    // Constants (Last, Fourth, ...) defined in Timezone_Generic.hpp.
+    static const uint32_t WK_MIN     = Last;    // Last
     static const uint32_t WK_MAX     = Fourth;  // Fourth
     static const uint32_t DOW_MIN    = Sun;     // Sunday
     static const uint32_t DOW_MAX    = Sat;     // Saturday
@@ -482,21 +482,21 @@ public:
     static const uint32_t OFFSET_MIN = 30;      // 30 minutes
     static const uint32_t OFFSET_MAX = 60;      // 60 minutes
     static const uint32_t OFFSET_MID = (OFFSET_MAX + OFFSET_MIN) / 2; // Middle of offset range.
-    
+
     // Print level values.  Use bit patterns to define levels.  The BP(v) macro
     // below creates a bit pattern based on the given value.  Note that the
     // BP() macro is only valid for values greater than zero.  The MASK(v) macro
     // below creates a bit mask that includes its level and all lower levels.
-    // Note that the MASK() macro is valid for values greater than or equal to 
+    // Note that the MASK() macro is valid for values greater than or equal to
     // zero.
-    #define BP(v)   (1 << ((v) - 1)) 
+    #define BP(v)   (1 << ((v) - 1))
     #define MASK(v) ((1 << (v)) - 1)
     static const uint32_t PL_NONE  = 0;                   // No status will be printed.
     static const uint32_t PL_WARN  = 1;                   // Display warnings.
     static const uint32_t PL_INFO  = 2;                   // Display informational info.
     static const uint32_t PL_DEBUG = 3;                   // Display debug info.
     static const uint32_t PL_DFLT  = PL_WARN;             // Default display level = warn.
-    
+
     static const uint32_t PL_NONE_BP  = 0;                // No status will be printed.
     static const uint32_t PL_WARN_BP  = BP(PL_WARN);      // Display warnings.
     static const uint32_t PL_INFO_BP  = BP(PL_INFO);      // Display informational info.
@@ -640,8 +640,8 @@ private:
     //
     /////////////////////////////////////////////////////////////////////////////
     char *GetWebPage() { return WebPageBuffer; }
-    
-    
+
+
     /////////////////////////////////////////////////////////////////////////////
     // WTMPrint()
     //

@@ -25,27 +25,9 @@ const char  *WiFiTimeManager::m_pName = "TIME DATA";
 // Unix time starts on Jan 1 1970. In seconds, that's 2208988800
 static const uint32_t SEVENTY_YEARS = 2208988800UL;
 
-
-// WiFiManagerParameter custom_field; // global param ( for non blocking w params )
+// Create our WiFiManagerParameter custom_field.  This custom field contains
+// all of our data fields embedded within.
 static WiFiManagerParameter tzSelectField;
-// Create parameters with NULL customHTML in order to not need to do placement new
-// later since all parameters are defined in one long string (tzSelectField) above.
-static WiFiManagerParameter useDstField(NULL);
-static WiFiManagerParameter dstWeek1Field(NULL);
-static WiFiManagerParameter dstDay1Field(NULL);
-static WiFiManagerParameter dstMonth1Field(NULL);
-static WiFiManagerParameter dstHour1Field(NULL);
-static WiFiManagerParameter dstOffsetField(NULL);
-static WiFiManagerParameter dstWeek2Field(NULL);
-static WiFiManagerParameter dstDay2Field(NULL);
-static WiFiManagerParameter dstMonth2Field(NULL);
-static WiFiManagerParameter dstHour2Field(NULL);
-static WiFiManagerParameter tzAbbreviationField(NULL);
-static WiFiManagerParameter dstAbbreviationField(NULL);
-static WiFiManagerParameter ntpAddressField(NULL);
-static WiFiManagerParameter ntpPortField(NULL);
-
-
 
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -74,7 +56,7 @@ WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_PrintLevel(PL_DFLT_MASK),
     // Initialize clock to the start of 2023.
     const time_t UTC_2023_START = 1672531200;
     setTime(UTC_2023_START);
-    
+
 } // End constructor.
 
 
@@ -143,28 +125,14 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
     MDNS.begin(pApName);
 
     UpdateWebPage();
+
+    // Use a placement new to install our web page into the WiFiManager.
     new (&tzSelectField) WiFiManagerParameter(GetWebPage()); // custom html input
 
+    //  Let the WiFiManager know about our web page.
     addParameter(&tzSelectField);
 
-    addParameter(&useDstField);
-
-    addParameter(&dstWeek1Field);
-    addParameter(&dstDay1Field);
-    addParameter(&dstMonth1Field);
-    addParameter(&dstHour1Field);
-    addParameter(&dstOffsetField);
-
-    addParameter(&dstWeek2Field);
-    addParameter(&dstDay2Field);
-    addParameter(&dstMonth2Field);
-    addParameter(&dstHour2Field);
-    addParameter(&tzAbbreviationField);
-    addParameter(&dstAbbreviationField);
-
-    addParameter(&ntpAddressField);
-    addParameter(&ntpPortField);
-
+    // Install our "save parameter" handler.
     WiFiManager::setSaveParamsCallback(SaveParamCallback);
 
     // Setup our custom menu.  Note: if 'separate' is true we want our setup page
@@ -222,7 +190,7 @@ bool WiFiTimeManager::process()
             UpdateTimezoneRules();
             delay(500);
             GetUtcTime();
-            
+
             // Make sure the wifi manager stops.
             stopWebPortal();
         }
@@ -381,7 +349,7 @@ void WiFiTimeManager::UpdateTimezoneRules()
     {
         m_Timezone.setRules(m_Params.m_DstEndRule, m_Params.m_DstEndRule);
     }
-    
+
     // Display debug info if debug display is enabled.
     if (PL_DEBUG_BP && m_PrintLevel)
     {
@@ -776,13 +744,13 @@ void WiFiTimeManager::WTMPrint(uint32_t level, const char *fmt...) const
         // Set up our variable argument list.
         va_list args;
         va_start(args, fmt);
-        
+
         // Print the message, prepended with our ID.
         Serial.print("[WTM] ");
-        Serial.printf(fmt, args);        
+        Serial.printf(fmt, args);
     }
 } // End WTMPrint().
-    
+
 
 /////////////////////////////////////////////////////////////////////////////
 // WTMPrint()
@@ -801,9 +769,9 @@ void WiFiTimeManager::WTMPrint(uint32_t level, String &str) const
     {
         // Print the message, prepended with our ID.
         Serial.print("[WTM] ");
-        Serial.print(str);        
+        Serial.print(str);
     }
 } // End WTMPrint().
-    
+
 
 

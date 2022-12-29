@@ -221,7 +221,7 @@ const char TZ_SELECT_STR[] = R"=====(
 
     // Hide or show the initial DST values selections.
     checkUseDst();
-    
+
     // JS ONLOAD
   }
 

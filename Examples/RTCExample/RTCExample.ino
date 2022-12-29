@@ -2,8 +2,8 @@
  * WiFiManager advanced demo, contains advanced configurartion options
  * Implements TRIGGEN_PIN button press, press for ondemand configportal, hold for 3 seconds for reset settings.
  */
- 
- 
+
+
 // Comment out the following line if no RTC is connected.
 #define USE_RTC 1
 
@@ -87,14 +87,14 @@ void PreOtaUpdateCallback()
 
 void UpdateWebPageCallback(String &rWebPage, uint32_t maxSize)
 {
-    Serial.println("UpdateWebPageCallback"); 
+    Serial.println("UpdateWebPageCallback");
     rWebPage.replace("<!-- HTML END -->", EDIT_TEST_STR);
 //    Serial.println(rWebPage);
 }
 
 void SaveParamsCallback()
 {
-    Serial.println("UpdateWebPageCallback"); 
+    Serial.println("UpdateWebPageCallback");
     Serial.printf("Integer Value = %d\n", pWtm->GetParamInt("editTestNumber"));
 }
 
@@ -118,13 +118,13 @@ void setup()
     digitalWrite(NET_CLOCK_PIN, HIGH);
     delay(1000);
     digitalWrite(NET_CLOCK_PIN, LOW);
-    
+
     // Init a pointer to our WiFiTimeManager instance.
     // This should be done before RTC init since the WiFiTimeManager
     // gets created on the first call to WiFiManager::Instance() and it
     // initializes a default time that the RTC may want to override.
     pWtm = WiFiTimeManager::Instance();
-    
+
 #if defined USE_RTC
     // Initialize I2C for RTC.
     Wire.begin();
@@ -140,7 +140,7 @@ void setup()
 
     // Web page is updated in init, so setup callback before Init() is called.
     pWtm->SetUpdateWebPageCallback(UpdateWebPageCallback);
-    
+
     pWtm->Init(AP_NAME, WmSeparateButton);
     pWtm->SetMinNtpRate(60); // Contact NTP server no more than once per minute.
 
@@ -152,13 +152,13 @@ void setup()
     pWtm->setPreSaveConfigCallback(PreSaveConfigCallback);
     pWtm->setPreSaveParamsCallback(PreSaveParamsCallback);
     pWtm->setPreOtaUpdateCallback(PreOtaUpdateCallback);
-    
+
     pWtm->setSaveParamsCallback(SaveParamsCallback);
-    
+
 #if defined USE_RTC
     pWtm->SetUtcGetCallback(UtcGetCallback);
     pWtm->SetUtcSetCallback(UtcSetCallback);
-#endif    
+#endif
 
     // Attempt to connect to the network.
     pWtm->setConfigPortalBlocking(WmBlocking);
@@ -202,7 +202,7 @@ void checkButton()
                 pWtm->setConfigPortalBlocking(false);
                 pWtm->setConfigPortalTimeout(0);
                 pWtm->startConfigPortal(AP_NAME);
-            }            
+            }
         }
     }
 }
