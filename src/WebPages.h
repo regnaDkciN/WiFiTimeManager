@@ -7,7 +7,7 @@
 // History:
 // - jmcorbett 07-SEP-2022 Original creation.
 //
-// Copyright (c) 2022, Joseph M. Corbett
+// Copyright (c) 2023, Joseph M. Corbett
 /////////////////////////////////////////////////////////////////////////////////
 #if !defined WEBPAGES_H
 #define WEBPAGES_H

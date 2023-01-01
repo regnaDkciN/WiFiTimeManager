@@ -1,13 +1,27 @@
 /////////////////////////////////////////////////////////////////////////////////
 // WiFiTimeManager.h
 //
-// This class implements the WiFiTimeManager class.  It handles miscellaneous
-// timezone and DST related tasks.
+// This file implements the WiFiTimeManager class.  It derives from the
+// WiFiManager class (https://github.com/tzapu/WiFiManager).  The WiFiManager
+// class enables the user to easily configure the WiFi connection of a WiFi
+// capable device via any web browser.  This class (WiFiTimeManager) extends the
+// behavior of the WiFiManager class by adding the the following capaabilities:
+//      - Ability to to select the timezone via the Setup web page.
+//      - Ability to set daylight savings timne (DST) start and end information
+//        via the Setup web page.
+//      - Ability to select and automatically connect to a local NTP server
+//        to keep accurate time.
+//      - Ability to (fairly) easily add additional fields to the Setup web page.
+//      - Ability to easily add real time clock (RTC) hardware to allow for
+//        accurate time keeping even when not connected to an NTP server.
+//
+// The latest version of WiFiTimeManager code with documentation and examples
+// can be found on github at: https://github.com/regnaDkciN/WiFiTimeManager .
 //
 // History:
 // - jmcorbett 17-SEP-2022 Original creation.
 //
-// Copyright (c) 2022, Joseph M. Corbett
+// Copyright (c) 2023, Joseph M. Corbett
 //
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -41,14 +55,15 @@ static const uint32_t DFLT_DST_END_WK      = First;   // DST ends 1st
 static const uint32_t DFLT_DST_END_DOW     = Sun;     //    Sunday
 static const uint32_t DFLT_DST_END_MONTH   = Nov;     //    of November
 static const uint32_t DFLT_DST_END_HOUR    = 2;       //    at 2 AM.
-static const char    *DFLT_NTP_ADDR        = "time.nist.gov"; // NTP server
+static const char    *DFLT_NTP_ADDR        = "time.nist.gov";
+                                                      // NTP server
 static const uint32_t DFLT_NTP_PORT        = 123;     // NTP port.
 
 
 /////////////////////////////////////////////////////////////////////////////////
 // TimeParameters structure
 //
-// Holds timezone offset and DST start/end times.
+// Holds timezone offset and DST start/end times, and NTP address and port.
 //
 /////////////////////////////////////////////////////////////////////////////////
 struct TimeParameters
@@ -75,15 +90,15 @@ struct TimeParameters
         strncpy(m_DstEndRule.abbrev, DFLT_TZ_ABBREV, sizeof(m_DstStartRule.abbrev) - 1);
     }
 
-    static const size_t MAX_NTP_ADDR = 26;
+    static const size_t MAX_NTP_ADDR = 26; // Maximumsize of the NTP address string.
 
     // Time related fields.
     uint32_t       m_Version;              // Struct version.  Bump on changes.
     int32_t        m_TzOfst;               // Timezone offset in minutes.
     bool           m_UseDst;               // true to use DST.
     int32_t        m_DstOfst;              // 30 or 60 minute DST offset.
-    uint32_t       m_NtpPort;              // Ntp port.
-    char           m_NtpAddr[MAX_NTP_ADDR];// Ntp server address.
+    uint32_t       m_NtpPort;              // NTP port.
+    char           m_NtpAddr[MAX_NTP_ADDR];// NTP server address.
     TimeChangeRule m_DstStartRule;         // Rule for starting DST.
     TimeChangeRule m_DstEndRule;           // Rule for ending DST.
 
@@ -93,7 +108,7 @@ struct TimeParameters
 /////////////////////////////////////////////////////////////////////////////////
 // WiFiTimeManager class
 //
-// Handles miscellaneous timezone and DST related tasks.
+// Handles miscellaneous timezone, DST, and NTP related tasks.
 //
 /////////////////////////////////////////////////////////////////////////////////
 class WiFiTimeManager : public WiFiManager
@@ -115,7 +130,7 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // Init()
     //
-    // This method initializes the spool collection.
+    // This method initializes the WiFiTimeManager class.
     //
     // Arguments:
     //    - pApName     - This is the network name to be used for the access point.
@@ -147,9 +162,7 @@ public:
     //    A 'true' value indicates connected, while a 'false' value
     //    indicates not connected.
     //
-    // NOTE: If a new connection was just establiched we will not return from
-    //       this method.  Instead we will reset the ESP32.  (See the commented
-    //       code in WiFiTimeManager.cpp).
+    // NOTE: If a new connection was just establiched this method update the time.
     //
     /////////////////////////////////////////////////////////////////////////////
     bool process();
@@ -158,10 +171,12 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // autoConnect()
     //
-    // Overrides the WiFiManager method to add m_connected status.
-    // Auto connect to saved wifi, or custom, and start config portal on failure.
-    // If the version with no arguments is called, an auto generated name will
-    // be used for the access point.
+    // Overrides the WiFiManager autoConnect() method in order to return the
+    // status of the WiFi connection.  Automatically connects to the saved WiFi
+    // network, or starts the config portal on failure.
+    // This method is overloaded.  The version with no arguments auto generates
+    // a name for the access point.  The other version uses the specified access
+    // point name.
     //
     // Arguments:
     //   pApName     - Pointer to a null terminated string representing the name
@@ -195,7 +210,8 @@ public:
     //          class's handler.  A NULL value is acceptable.
     //
     /////////////////////////////////////////////////////////////////////////////
-    void setSaveParamsCallback(std::function<void()> func) { m_pSaveParamsCallback = func; }
+    void setSaveParamsCallback(std::function<void()> func)
+            { m_pSaveParamsCallback = func; }
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -285,9 +301,9 @@ public:
     // ResetData()
     //
     // This method resets/clears any saved network connection credentials
-    // (network SSID and password) that may have been previously saved.
-    // The next reboot will cause the wifi manager access point to execute and
-    // a new set of credentials will be needed.
+    // (network SSID and password) and all timezone and NTP data that may have
+    // been previously saved.  The next reboot will cause the WiFi Manager access
+    // point to execute and new set of network credentials will be needed.
     //
     /////////////////////////////////////////////////////////////////////////////
     void ResetData();
@@ -296,7 +312,7 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // Save()
     //
-    // Saves our current state to NVS.
+    // Saves our current state to NVS.  This includes all timezone and NTP data.
     //
     // Returns:
     //    Returns 'true' if successful, or 'false' otherwise.
@@ -308,7 +324,7 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // Restore()
     //
-    // Restores our state from NVS.
+    // Restores our state from NVS.  This includes all timezone and NTP data.
     //
     // Returns:
     //    Returns 'true' if successful, or 'false' otherwise.
@@ -320,7 +336,7 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // Reset()
     //
-    // Reset our state info in NVS.
+    // Reset our state info in NVS.  This includes all timezone and NTP data.
     //
     // Returns:
     //    Returns 'true' if successful, or 'false' otherwise.
@@ -336,8 +352,9 @@ public:
     // the NTP server has been contacted, then a new NTP request is sent, and its
     // returned data is used to update the local clock.  If it has been too soon
     // since the server was contacted, then the RTC clock (if any) time is used.
-    // If no too soon, but no RTC, then the time is estimated as the last known good
-    // time value plus the amount of time that has elapsed since it was established.
+    // If not too soon, but no RTC, then the time is estimated as the last known
+    // good time value plus the amount of time that has elapsed since it was
+    // established.
     //
     // Returns:
     //   Returns the best known value for the current UTC time.
@@ -369,7 +386,7 @@ public:
     //   pTz - Pointer to the timezone string associated with 't'.  NULL is OK.
     //
     /////////////////////////////////////////////////////////////////////////////
-    void PrintDateTime(time_t t, const char *pTz);
+    void PrintDateTime(time_t t, const char *pTz = NULL);
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -411,7 +428,7 @@ public:
     //   size - Size of the buffer pointed to by pBuf.
     //
     // Returns:
-    //    Returns the value passed as pBuf.  The returned buffer will contain the
+    //    Returns the value in pBuf.  The returned buffer will contain the
     //    value of the specified parameter if successful, or an empty buffer on
     //    failure.
     //
@@ -536,6 +553,17 @@ protected:
 
 private:
     /////////////////////////////////////////////////////////////////////////////
+    // Private methods.
+    /////////////////////////////////////////////////////////////////////////////
+
+    /////////////////////////////////////////////////////////////////////////////
+    // Unimplemented methods.  We don't want users to try to use these.
+    /////////////////////////////////////////////////////////////////////////////
+    WiFiTimeManager(WiFiTimeManager &rCs);
+    WiFiTimeManager &operator=(WiFiTimeManager &rCs);
+
+
+    /////////////////////////////////////////////////////////////////////////////
     // Constructor and destructor.
     //
     // Private to enforce singleton behavior.
@@ -562,17 +590,6 @@ private:
     /////////////////////////////////////////////////////////////////////////////
     void UpdateWebPage();
 
-
-    /////////////////////////////////////////////////////////////////////////////
-    // Unimplemented methods.  We don't want users to try to use these.
-    /////////////////////////////////////////////////////////////////////////////
-    WiFiTimeManager(WiFiTimeManager &rCs);
-    WiFiTimeManager &operator=(WiFiTimeManager &rCs);
-
-
-    /////////////////////////////////////////////////////////////////////////////
-    // Private methods.
-    /////////////////////////////////////////////////////////////////////////////
 
     /////////////////////////////////////////////////////////////////////////////
     // SaveParamCallback()
@@ -658,14 +675,14 @@ private:
     void WTMPrint(uint32_t level, const char *fmt...) const;
     void WTMPrint(uint32_t level, String &str) const;
 
+
     /////////////////////////////////////////////////////////////////////////////
     // Private static constants.
     /////////////////////////////////////////////////////////////////////////////
-    static const char    *pPrefSavedStateLabel;
-    static const size_t   MAX_NVS_NAME_LEN;
-    static const int      DFLT_SERVER_PORT  = 80;
-    static const size_t   MAX_JSON_SIZE     = 350;
-    static const char    *m_pName;
+    static const char    *pPrefSavedStateLabel;       // Labes for saving preferences.
+    static const size_t   MAX_NVS_NAME_LEN;           // Maximum NVS preferences name length.
+    static const size_t   MAX_JSON_SIZE     = 350;    // Max web pag JSON size.
+    static const char    *m_pName;                    // Preferences name.
     static const int      NTP_PACKET_SIZE   = 48;     // NTP timestamp is in the
                                                       //    first 48 bytes of the message.
     static const int      UDP_TIMEOUT_MS    = 2000;   // Timeout in miliseconds to
@@ -677,24 +694,27 @@ private:
     static const size_t   MAX_WEB_PAGE_SIZE = 2 * sizeof(TZ_SELECT_STR) + MAX_JSON_SIZE;
     static char           WebPageBuffer[MAX_WEB_PAGE_SIZE];
 
+
     /////////////////////////////////////////////////////////////////////////////
     // Private instance data.
     /////////////////////////////////////////////////////////////////////////////
-    uint32_t       m_PrintLevel;        // Status print level selection.
-    time_t         m_LastTime;          // Timestamp from the last NTP packet.
-    WiFiUDP        m_Udp;               // UDP instance for tx & rx of UDP packets.
-    bool           m_UsingNetworkTime;  // True if using time from NTP server.
-    TimeParameters m_Params;            // Timezone and DST data.
-    Timezone       m_Timezone;          // Timezone class for TZ and DST change.
-    uint32_t       m_MinNtpRateSec;     // Minimum seconds between NTP updates.
+    uint32_t       m_PrintLevel;          // Status print level selection.
+    time_t         m_LastTime;            // Timestamp from the last NTP packet.
+    WiFiUDP        m_Udp;                 // UDP instance for tx & rx of UDP packets.
+    bool           m_UsingNetworkTime;    // True if using time from NTP server.
+    TimeParameters m_Params;              // Timezone and DST data.
+    Timezone       m_Timezone;            // Timezone class for TZ and DST change.
+    uint32_t       m_MinNtpRateSec;       // Minimum seconds between NTP updates.
     TimeChangeRule *m_pLclTimeChangeRule; // Pointer to time change rule in use.
-    std::function<void()> m_pSaveParamsCallback;     // Pointer to save params callback.
-    std::function<time_t()> m_pUtcGetCallback;       // Pointer to get UTC callback.
+    std::function<void()> m_pSaveParamsCallback;
+                                          // Pointer to save params callback.
+    std::function<time_t()> m_pUtcGetCallback;
+                                          // Pointer to get UTC callback.
     std::function<void(time_t t)> m_pUtcSetCallback; // Pointer to set UTC callback.
     std::function<void(String &rWebPage, uint32_t maxSize)> m_pUpdateWebPageCallback;
-                                        // Pointer to update web page callback.
-    uint8_t        m_PacketBuf[NTP_PACKET_SIZE]; // Buffer to hold in & out packets.
-
+                                          // Pointer to update web page callback.
+    uint8_t        m_PacketBuf[NTP_PACKET_SIZE];
+                                          // Buffer to hold in & out packets.
 
 }; // End class WiFiTimeManager.
 

@@ -6,7 +6,7 @@
 // History:
 // - jmcorbett 17-SEP-2022 Original creation.
 //
-// Copyright (c) 2022, Joseph M. Corbett
+// Copyright (c) 2023, Joseph M. Corbett
 //
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -226,7 +226,7 @@ void WiFiTimeManager::ResetData()
 /////////////////////////////////////////////////////////////////////////////////
 // Save()
 //
-// Saves our current state to NVS.
+// Saves our current state to NVS.  This includes all timezone and NTP data.
 //
 // Returns:
 //    Returns 'true' if successful, or 'false' otherwise.
@@ -275,7 +275,7 @@ bool WiFiTimeManager::Save() const
 /////////////////////////////////////////////////////////////////////////////////
 // Restore()
 //
-// Restores our state from NVS.
+// Restores our state from NVS.  This includes all timezone and NTP data.
 //
 // Returns:
 //    Returns 'true' if successful, or 'false' otherwise.
@@ -310,7 +310,7 @@ bool WiFiTimeManager::Restore()
 /////////////////////////////////////////////////////////////////////////////
 // Reset()
 //
-// Reset our state info in NVS.
+// Reset our state info in NVS.  This includes all timezone and NTP data.
 //
 // Returns:
 //    Returns 'true' if successful, or 'false' otherwise.
