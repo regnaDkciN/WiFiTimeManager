@@ -1,7 +1,22 @@
 /////////////////////////////////////////////////////////////////////////////////
 // WiFiTimeManager.cpp
 //
-// Contains the WiFiTimeManager class that manages timezone and DST settings.
+// This file implements the WiFiTimeManager class.  It derives from the
+// WiFiManager class (https://github.com/tzapu/WiFiManager).  The WiFiManager
+// class enables the user to easily configure the WiFi connection of a WiFi
+// capable device via any web browser.  This class (WiFiTimeManager) extends the
+// behavior of the WiFiManager class by adding the the following capaabilities:
+//      - Ability to to select the timezone via the Setup web page.
+//      - Ability to set daylight savings timne (DST) start and end information
+//        via the Setup web page.
+//      - Ability to select and automatically connect to a local NTP server
+//        to keep accurate time.
+//      - Ability to (fairly) easily add additional fields to the Setup web page.
+//      - Ability to easily add real time clock (RTC) hardware to allow for
+//        accurate time keeping even when not connected to an NTP server.
+//
+// The latest version of WiFiTimeManager code with documentation and examples
+// can be found on github at: https://github.com/regnaDkciN/WiFiTimeManager .
 //
 // History:
 // - jmcorbett 17-SEP-2022 Original creation.
@@ -17,12 +32,12 @@
 #include "WiFiTimeManager.h"    // For WiFiTimeManager class.
 
 
-// Some constants used by the class.
+// Some constants used by the WiFiTimeManager class.
 const size_t WiFiTimeManager::MAX_NVS_NAME_LEN     = 15U;
 const char  *WiFiTimeManager::pPrefSavedStateLabel = "All Time Data";
 char         WiFiTimeManager::WebPageBuffer[WiFiTimeManager::MAX_WEB_PAGE_SIZE];
 const char  *WiFiTimeManager::m_pName = "TIME DATA";
-// Unix time starts on Jan 1 1970. In seconds, that's 2208988800
+// Unix time starts on Jan 1 1970. In seconds, that's 2208988800.
 static const uint32_t SEVENTY_YEARS = 2208988800UL;
 
 // Create our WiFiManagerParameter custom_field.  This custom field contains
@@ -53,10 +68,9 @@ WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_PrintLevel(PL_DFLT_MASK),
     // If DST is not used, then fix the timezone rules.
     UpdateTimezoneRules();
 
-    // Initialize clock to the start of 2023.
+    // Initialize the clock to the start of 2023.
     const time_t UTC_2023_START = 1672531200;
     setTime(UTC_2023_START);
-
 } // End constructor.
 
 
@@ -64,7 +78,7 @@ WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_PrintLevel(PL_DFLT_MASK),
 /////////////////////////////////////////////////////////////////////////////
 // Instance()
 //
-// Return our singleton instance of the class.  Constructor is private so
+// Return our singleton instance of the class.  The constructor is private so
 // the only way to create an object is via this method.
 //
 // Returns:
@@ -73,15 +87,17 @@ WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_PrintLevel(PL_DFLT_MASK),
 /////////////////////////////////////////////////////////////////////////////
 WiFiTimeManager *WiFiTimeManager::Instance()
 {
+    // Since this is static, the instance is created only on the first call to
+    // Instance().  A pointer to it is always returned.
     static WiFiTimeManager instance;
     return &instance;
 } // End Instance().
 
 
-/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 // Init()
 //
-// This method initializes the spool collection.
+// This method initializes the WiFiTimeManager class.
 //
 // Arguments:
 //    - pApName     - This is the network name to be used for the access point.
@@ -98,10 +114,10 @@ WiFiTimeManager *WiFiTimeManager::Instance()
 // Returns:
 //    Returns true on successful completion.  Returns false if pApName is empty.
 //
-/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
 {
-    // Set mode.  ESP defaults to STA+AP.
+    // Set the WiFi mode.  ESP defaults to STA+AP.
     WiFi.mode(WIFI_STA);
 
     // Setup our AP name if one was given.
@@ -110,7 +126,7 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
         return false;
     }
 
-    // Restore saved state info.  If no state info has been saved yet, then
+    // Restore our saved state info.  If no state info has been saved yet, then
     // save our default values.
     if (!Restore())
     {
@@ -122,21 +138,25 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
         }
     }
 
+    // Set our network name.
     MDNS.begin(pApName);
 
+    // Create our web page using previously saved values.
     UpdateWebPage();
 
     // Use a placement new to install our web page into the WiFiManager.
-    new (&tzSelectField) WiFiManagerParameter(GetWebPage()); // custom html input
+    new (&tzSelectField) WiFiManagerParameter(GetWebPage());
 
     //  Let the WiFiManager know about our web page.
     addParameter(&tzSelectField);
 
-    // Install our "save parameter" handler.
+    // Install our "save parameter" handler.  This handler fetches any (possibly
+    // changed) values of our timezone and NTP parameters after the user saves
+    // the Setup page.
     WiFiManager::setSaveParamsCallback(SaveParamCallback);
 
     // Setup our custom menu.  Note: if 'separate' is true we want our setup page
-    // button to be before the wifi config button.
+    // button to appear before the WiFi config button on the web page.
     const char *menu[] = {"param", "wifi", "info", "sep", "restart", "exit"};
     if (setupButton)
     {
@@ -147,18 +167,21 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
         setMenu(&menu[1], (sizeof(menu) / sizeof(menu[0])) - 1);
     }
 
-    // Setup the wifi manager.
     // Enable captive portal redirection.
     setCaptivePortalEnable(true);
     // Always disconnect before connecting.
     setCleanConnect(true);
-    // Show erase wifi config button on info page.
+    // Show erase WiFi config button on info page.
     setShowInfoErase(true);
-    // Block until done.
+    
+    // Block until done.  This is the default behavior.  May be changed by the
+    // user later.
     setConfigPortalBlocking(true);
-    // Set to dark theme.
+    // Set to dark theme.  This is the default behavior.  May be changed by the
+    // user later.
     setClass("invert");
 
+    // Return success if we got this far.
     return true;
 } // End Init().
 
@@ -167,14 +190,14 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
 // process()
 //
 // Overrides the WiFiManager process() method.
-// This method handles the non-blocking wifi manager completion.
+// This method handles the non-blocking WiFiManager completion.
 //
 // Returns:
 //    Returns a bool indicating whether or not the network is now connected.
 //    A 'true' value indicates connected, while a 'false' value
 //    indicates not connected.
 //
-// NOTE: If a new connection was just established we update the network time.
+// NOTE: If a new connection was just established the network time gets updated.
 //
 /////////////////////////////////////////////////////////////////////////////////
 bool WiFiTimeManager::process()
@@ -185,8 +208,8 @@ bool WiFiTimeManager::process()
     {
         if (WiFiManager::process())
         {
-            // Delay briefly to let the network settle, then attempt to get
-            // the time from the network.
+            // We must have just connected.  Delay briefly to let the network
+            // settle, then attempt to get the time from the network.
             UpdateTimezoneRules();
             delay(500);
             GetUtcTime();
@@ -196,6 +219,7 @@ bool WiFiTimeManager::process()
         }
     }
 
+    // Return an indication of the network connection status.
     return IsConnected();
 } // End process().
 
@@ -204,10 +228,9 @@ bool WiFiTimeManager::process()
 // ResetData()
 //
 // This method resets/clears any saved network connection credentials
-// (network SSID and password) that may have been previously saved.
-// It also clears all timezone and DST data that may have been previously save.
-// The next reboot will cause the wifi manager access point to execute and
-// a new set of credentials and time data will be needed.
+// (network SSID and password) and all timezone and NTP data that may have
+// been previously saved.  The next reboot will cause the WiFi Manager access
+// point to execute and new set of network credentials will be needed.
 //
 /////////////////////////////////////////////////////////////////////////////
 void WiFiTimeManager::ResetData()
@@ -234,18 +257,17 @@ void WiFiTimeManager::ResetData()
 /////////////////////////////////////////////////////////////////////////////////
 bool WiFiTimeManager::Save() const
 {
+    // Assume that the save will fail.
     bool saved = false;
     WTMPrint(PL_INFO_BP, "Saving Data\n");
 
     // Read our currently saved state.  If it hasn't changed, then don't
     // bother to do the save in order to conserve writes to NVS.
     TimeParameters nvsState;
-
-    // Save our state data.
     Preferences prefs;
     prefs.begin(m_pName);
 
-    // Get the saved data.
+    // Get the previously saved data.
     size_t nvsSize =
         prefs.getBytes(pPrefSavedStateLabel, &nvsState, sizeof(TimeParameters));
 
@@ -286,6 +308,7 @@ bool WiFiTimeManager::Restore()
     // Assume we're gonna fail.
     bool succeeded = false;
     WTMPrint(PL_INFO_BP, "Restoring Saved Data\n");
+    
     // Restore our state data to a temporary structure.
     TimeParameters cachedState;
     Preferences prefs;
@@ -320,7 +343,7 @@ bool WiFiTimeManager::Reset()
 {
     bool status = false;
 
-    // Erase all stored information in the wifi manager.
+    // Erase all the stored information in the WiFiManager.
     ResetData();
 
     // Remove our state data from NVS.
@@ -329,6 +352,7 @@ bool WiFiTimeManager::Reset()
     status = prefs.remove(pPrefSavedStateLabel);
     prefs.end();
 
+    // Let the user know if we succeeded or failed.
     return status;
 } // End Reset().
 
@@ -336,11 +360,15 @@ bool WiFiTimeManager::Reset()
 /////////////////////////////////////////////////////////////////////////////
 // UpdateTimezone()
 //
-// Update our timezone rules.
+// Update our timezone rules.  Should be called any time timezone or DST
+// data changes.
 //
 /////////////////////////////////////////////////////////////////////////////
 void WiFiTimeManager::UpdateTimezoneRules()
 {
+    // Handle use of DST differently.  If DST is being used, then use both
+    // timezone rules.  Otherwise, use the DST end rule for both arguments
+    // to setRules().
     if (m_Params.m_UseDst)
     {
         m_Timezone.setRules(m_Params.m_DstStartRule, m_Params.m_DstEndRule);
@@ -363,7 +391,7 @@ void WiFiTimeManager::UpdateTimezoneRules()
 /////////////////////////////////////////////////////////////////////////////
 // UpdateWebPage()
 //
-// Update our custom Setup page based on current timezone and DST settings.
+// Update our custom Setup page based on current timezone, DST, and NTP settings.
 //
 /////////////////////////////////////////////////////////////////////////////
 void WiFiTimeManager::UpdateWebPage()
@@ -405,7 +433,6 @@ void WiFiTimeManager::UpdateWebPage()
 
     // Save our (possibly modified) web page for later use.
     strncpy(WebPageBuffer, WebPageString.c_str(), MAX_WEB_PAGE_SIZE - 1);
-
 } // End UpdateWebPage().
 
 
@@ -421,6 +448,7 @@ void WiFiTimeManager::UpdateWebPage()
 /////////////////////////////////////////////////////////////////////////////
 void WiFiTimeManager::SaveParamCallback()
 {
+    // Since this is a static method, we need to point to the singleton instance.
     WiFiTimeManager *pWtm = Instance();
 
     pWtm->WTMPrint(PL_INFO_BP, "SaveParamCallback\n");
@@ -464,10 +492,10 @@ void WiFiTimeManager::SaveParamCallback()
 /////////////////////////////////////////////////////////////////////////////
 // GetParamString()
 //
-// Returns the last value read of the specified timezone parameter.
+// Returns the last value read of the specified Setup parameter.
 //
 // Arguments:
-//   name - String containing the name of the argument whose value will be
+//   name - String containing the name of the argument whose value is to be
 //          returned.
 //
 // Returns:
@@ -490,12 +518,12 @@ String WiFiTimeManager::GetParamString(String name)
 /////////////////////////////////////////////////////////////////////////////
 // GetParamChars()
 //
-// Returns the last value read of the specified timezone parameter.
+// Returns the last value read of the specified Setup parameter.
 //
 // Arguments:
-//   name - String containing the name of the argument whose value will be
+//   name - String containing the name of the argument whose value is to be
 //          returned.
-//   pBuf - Pointer to the buffer in which the parameter's value will be
+//   pBuf - Pointer to the buffer in which the parameter's value is to be
 //          returned.
 //   size - Size of the buffer pointed to by pBuf.
 //
@@ -518,11 +546,11 @@ char *WiFiTimeManager::GetParamChars(String name, char *pBuf, size_t size)
 // integer.
 //
 // Arguments:
-//   name - String containing the name of the argument whose value will be
+//   name - String containing the name of the argument whose value is to be
 //          returned.
 //
 // Returns:
-//    Returns the int value of the specified timezone parameter.
+//    Returns the int value of the specified Setup parameter.
 //
 /////////////////////////////////////////////////////////////////////////////
 int WiFiTimeManager::GetParamInt(String name)
@@ -553,9 +581,9 @@ void WiFiTimeManager::SendNtpPacket()
     m_PacketBuf[14] = 49;
     m_PacketBuf[15] = 52;
 
-    // All NTP fields have been given values, now we can send a packet
-    // requesting a timestamp:
-    m_Udp.beginPacket(GetNtpAddr(), GetNtpPort()); // NTP requests are to the NTP port.
+    // All NTP fields have been given values, now we send a packet
+    // requesting a timestamp.  NTP requests are to the NTP port.
+    m_Udp.beginPacket(GetNtpAddr(), GetNtpPort());
     m_Udp.write(m_PacketBuf, NTP_PACKET_SIZE);
     m_Udp.endPacket();
 } // End SendNtpPacket().

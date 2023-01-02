@@ -117,7 +117,7 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // Instance()
     //
-    // Return our singleton instance of the class.  Constructor is private so
+    // Return our singleton instance of the class.  The constructor is private so
     // the only way to create an object is via this method.
     //
     // Returns:
@@ -401,10 +401,10 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // GetParamString()
     //
-    // Returns the last value read of the specified timezone parameter.
+    // Returns the last value read of the specified Setup parameter.
     //
     // Arguments:
-    //   name - String containing the name of the argument whose value will be
+    //   name - String containing the name of the argument whose value is to be
     //          returned.
     //
     // Returns:
@@ -418,12 +418,12 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // GetParamChars()
     //
-    // Returns the last value read of the specified timezone parameter.
+    // Returns the last value read of the specified Setup parameter.
     //
     // Arguments:
-    //   name - String containing the name of the argument whose value will be
+    //   name - String containing the name of the argument whose value is to be
     //          returned.
-    //   pBuf - Pointer to the buffer in which the parameter's value will be
+    //   pBuf - Pointer to the buffer in which the parameter's value is to be
     //          returned.
     //   size - Size of the buffer pointed to by pBuf.
     //
@@ -443,11 +443,11 @@ public:
     // integer.
     //
     // Arguments:
-    //   name - String containing the name of the argument whose value will be
+    //   name - String containing the name of the argument whose value is to be
     //          returned.
     //
     // Returns:
-    //    Returns the int value of the specified timezone parameter.
+    //    Returns the int value of the specified Setup parameter.
     //
     /////////////////////////////////////////////////////////////////////////////
     int    GetParamInt(String name);
@@ -585,7 +585,7 @@ private:
     /////////////////////////////////////////////////////////////////////////////
     // UpdateWebPage()
     //
-    // Update our custom Setup page based on current timezone and DST settings.
+    // Update our custom Setup page based on current timezone, DST, and NTP settings.
     //
     /////////////////////////////////////////////////////////////////////////////
     void UpdateWebPage();
