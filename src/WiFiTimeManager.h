@@ -268,9 +268,10 @@ public:
     //       the size of the (modified) rWebPage exceeds  the value of maxSize,
     //       the buffer will be truncated, so be careful.
     //
-    //       Several comments appear within the rWebPage string that
+    //       Several comments appear within the string that
     //       may be employed to locate specific places within the standard
-    //       web page.  These are:
+    //       web page.  The user can use these comments to insert relevant
+    //       HTML or javascript code.  These comments are:
     //          "<!-- HTML START -->"
     //              This marks the start of HTML, which is also the start of
     //              the web page string.
@@ -379,10 +380,10 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // PrintDateTime
     //
-    // Format and print a time_t value, with a time zone appended.
+    // Format and print a unix time_t value, with a time zone appended.
     //
     // Arguments:
-    //   t   - Time_t structure containing the time to be displayed.
+    //   t   - time_t value containing the time to be displayed.
     //   pTz - Pointer to the timezone string associated with 't'.  NULL is OK.
     //
     /////////////////////////////////////////////////////////////////////////////
@@ -686,7 +687,7 @@ private:
     static const int      NTP_PACKET_SIZE   = 48;     // NTP timestamp is in the
                                                       //    first 48 bytes of the message.
     static const int      UDP_TIMEOUT_MS    = 2000;   // Timeout in miliseconds to
-                                                      //    wait for n UDP packet to arrive.
+                                                      //    wait for NTP packet to arrive.
 
     // Allocate enough space to buffer twice the size of our original web page.
     // This allows for the user to add HTML and/or java script if needed.

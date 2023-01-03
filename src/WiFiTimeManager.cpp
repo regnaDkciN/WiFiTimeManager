@@ -173,7 +173,7 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
     setCleanConnect(true);
     // Show erase WiFi config button on info page.
     setShowInfoErase(true);
-    
+
     // Block until done.  This is the default behavior.  May be changed by the
     // user later.
     setConfigPortalBlocking(true);
@@ -308,7 +308,7 @@ bool WiFiTimeManager::Restore()
     // Assume we're gonna fail.
     bool succeeded = false;
     WTMPrint(PL_INFO_BP, "Restoring Saved Data\n");
-    
+
     // Restore our state data to a temporary structure.
     TimeParameters cachedState;
     Preferences prefs;
@@ -611,6 +611,8 @@ time_t WiFiTimeManager::GetUtcTime()
     uint32_t        deltaMs    = millis() - lastMs;
     if (!IsConnected() || (deltaMs < (m_MinNtpRateSec * MS_PER_SEC)))
     {
+        // We're either not connected or it is too soon to contact the NTP
+        // server, so handle the time fetching locally.
         return m_pUtcGetCallback();
     }
 
@@ -628,7 +630,7 @@ time_t WiFiTimeManager::GetUtcTime()
         uint32_t size = m_Udp.parsePacket();
         if (size >= NTP_PACKET_SIZE)
         {
-            // Read packet into the buffer.
+            // Read packet into our packet buffer.
             m_Udp.read(m_PacketBuf, NTP_PACKET_SIZE);
 
             // Convert four bytes starting at location 40 to a long integer.
@@ -638,15 +640,19 @@ time_t WiFiTimeManager::GetUtcTime()
             secsSince1900 |= static_cast<uint32_t>(m_PacketBuf[42] << 8);
             secsSince1900 |= static_cast<uint32_t>(m_PacketBuf[43]);
 
-            // Subtract seventy years:
+            // Subtract seventy years and round the seconds up.
             uint32_t nowMs = millis();
             uint32_t epochSec = (secsSince1900 - SEVENTY_YEARS) +
                                 (nowMs - beginWaitMs + MS_PER_SEC / 2) / MS_PER_SEC;
 
-            // Set the system time to UTC.
+            // Set the system time to UTC and call the user's set callback if any,
             setTime(static_cast<time_t>(epochSec));
             m_pUtcSetCallback(static_cast<time_t>(epochSec));
+
+            // Remember when we last accessed the NTP server.
             lastMs = nowMs;
+
+            // Remember that we got NTP time.
             m_UsingNetworkTime = true;
             WTMPrint(PL_INFO_BP, "Got NTP time.\n");
             return static_cast<time_t>(epochSec);
@@ -655,6 +661,7 @@ time_t WiFiTimeManager::GetUtcTime()
 
     // If we got here we were unable to connect to the NTP server.  It's possible
     // that we previously received good NTP data, but this time we didn't.
+    // So handle the time fetching locally.
     m_UsingNetworkTime = false;
     WTMPrint(PL_WARN_BP, "No NTP Response!\n");
 
@@ -682,10 +689,10 @@ time_t WiFiTimeManager::GetLocalTime()
 /////////////////////////////////////////////////////////////////////////////
 // PrintDateTime
 //
-// Format and print a time_t value, with a time zone appended.
+// Format and print a unix time_t value, with a time zone appended.
 //
 // Arguments:
-//   t   - Time_t structure containing the time to be displayed.
+//   t   - time_t value containing the time to be displayed.
 //   pTz - Pointer to the timezone string associated with 't'.  NULL is OK.
 //
 /////////////////////////////////////////////////////////////////////////////
@@ -758,7 +765,8 @@ void WiFiTimeManager::SetUtcSetCallback(std::function<void(time_t t)> func)
 // WTMPrint()
 //
 // Print the specified data if the specified level matches the m_PrintLevel
-// that was set via SetPrintLevel().
+// that was set via SetPrintLevel().  Note that this method is overloaded
+// to work with null terminated strings, and String objects.
 //
 // Arguments:
 //   level - The bit pattern of the types of data that may be printed.
@@ -784,12 +792,12 @@ void WiFiTimeManager::WTMPrint(uint32_t level, const char *fmt...) const
 // WTMPrint()
 //
 // Print the specified data if the specified level matches the m_PrintLevel
-// that was set via SetPrintLevel().
+// that was set via SetPrintLevel().  Note that this method is overloaded
+// to work with null terminated strings, and String objects.
 //
 // Arguments:
 //   level - The bit pattern of the types of data that may be printed.
-//   fmt   - The printf() style format string.
-//   ...   - Arguments to the fmt string.
+//   str   - String instance to print.
 /////////////////////////////////////////////////////////////////////////////
 void WiFiTimeManager::WTMPrint(uint32_t level, String &str) const
 {
@@ -800,6 +808,4 @@ void WiFiTimeManager::WTMPrint(uint32_t level, String &str) const
         Serial.print(str);
     }
 } // End WTMPrint().
-
-
 

@@ -2,7 +2,31 @@
 // WebPages.h
 //
 // Contains the (very long) string that represents the root web page for
-// timezone / DST configuration using WiFiManager.
+// timezone / DST configuration using WiFiTimeManager.
+//
+//       Several comments appear within the string that
+//       may be employed to locate specific places within the standard
+//       web page.  The user can use these comments to insert relevant
+//       HTML or javascript code.  These comments are:
+//          "<!-- HTML START -->"
+//              This marks the start of HTML, which is also the start of
+//              the web page string.
+//          "<!-- HTML END -->"
+//              This marks the end of HTML and is just before the end of the
+//              web page body.
+//          "// JS START"
+//              This marks the start of the java script, just after the
+//              <script> declaration.
+//          "// JS ONLOAD"
+//              This marks a spot within the onload() function where
+//              java script initialization code can be added.
+//          "// JS SAVE"
+//              This marks a spot within the function that is executed when
+//              the submit (save) button is pressed.  It can be used to
+//              perform java script save actions.
+//          "// JS END"
+//              This marks the of of the java script, just before the
+//              </script> declaration.
 //
 // History:
 // - jmcorbett 07-SEP-2022 Original creation.
