@@ -202,7 +202,7 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
 /////////////////////////////////////////////////////////////////////////////////
 bool WiFiTimeManager::process()
 {
-    // If we're not yet connected, then call the wifi manager to see if a
+    // If we're not yet connected, then call the WiFi manager to see if a
     // connection was recently made.
     if (!IsConnected())
     {
@@ -214,7 +214,7 @@ bool WiFiTimeManager::process()
             delay(500);
             GetUtcTime();
 
-            // Make sure the wifi manager stops.
+            // Make sure the WiFi manager stops.
             stopWebPortal();
         }
     }

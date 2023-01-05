@@ -155,7 +155,7 @@ public:
     // process()
     //
     // Overrides the WiFiManager process() method.
-    // This method handles the non-blocking wifi manager completion.
+    // This method handles the non-blocking WiFi manager completion.
     //
     // Returns:
     //    Returns a bool indicating whether or not the network is now connected.
@@ -201,8 +201,7 @@ public:
     // setSaveParamsCallback()
     //
     // Overrides WiFiManager::setSaveParamsCallback().
-    // Sets a callback that will be invoked when saving either params-in-wifi
-    // or the params page.
+    // Sets a callback that will be invoked when saving the Setup page.
     //
     // Arguments:
     //   func - Pointer to the function to be called upon saving the params.  This

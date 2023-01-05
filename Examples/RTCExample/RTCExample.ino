@@ -1,18 +1,25 @@
 /////////////////////////////////////////////////////////////////////////////////
 // RTCExample.ino
 //
-// This file contains example code demonstrating how to use a DS3231 hardware
+// This file contains example code demonstrating the use of a DS3231 hardware
 // real time clock (RTC) with the WiFiTimeManager library.  This example also
-// demosnstrates use of the polled (non-blocking) use of WiFiTimeManager.
+// demosnstrates use of the polled (non-blocking) mode of WiFiTimeManager.
 // All RTC specific example code is bracketed by:
 //      #if defined USE_RTC
 //         ... RTC specific code
 //      #endif
 //
-// This setup includes the following:
-//   - A button connected to GPIO 14.  This button is used to either start the
-//     config portal on a short press, or reset all state information including
-//     WiFi credentials, timezone, DST, and NTP information.
+// When using a RTC, it is best to run the WiFiTimeManager in non-blocking mode.
+// This allows the system to start up immediately, even without a WiFi connection.
+// When the system starts without a WiFi connection, the time is then read from
+// the RTC while a network connection is being attempted.  Once the WiFi
+// connection succeeds, the (probably) more accurate NTP time is automatically
+// used.
+//
+// This example includes the following:
+//   - A reset button connected to GPIO 14.  This button is used to either start
+//     the config portal on a short press, or reset all state information
+//     including WiFi credentials, timezone, DST, and NTP information.
 //   - An LED connected to GPIO 12 that lights when NTP time is being used.
 //   - An LED connected to GPIO 27 that lights when the local clock is supplying
 //     time data.
@@ -29,7 +36,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 
-// Comment out the following line if no RTC is connected.
+// *** Comment out the following line if no RTC is connected. ***
 #define USE_RTC 1
 
 #include <String>               // For String class.
@@ -48,22 +55,26 @@
     static DS323x gRtc;         // The DS3231 instance.
 #endif
 static WiFiTimeManager *gpWtm;  // Pointer to the WiFiTimeManager singleton instance.
-static bool WmSeparateButton = true;
+static const bool SETUP_BUTTON  = true;
                                 // Use a separate Setup button on the web page.
-static bool WmBlocking = false; // Use non-blocking mode.
+static const bool BLOCKING_MODE = false; // Use non-blocking mode.
 static const char *AP_NAME = "WiFi Clock Setup";
                                 // AP name user will see as network device.
+                                
 // Example HTML code to demonstrate insertion of data fields on the Setup web page.
 static const char EDIT_TEST_STR[] = R"(
     <br>
     <h3 style="display:inline">AN INTEGER VALUE:</h3>
-    <input type="number" id="editTestNumber" name="editTestNumber" min="1" max="1000" value="0">
+    <input type="number" id="editTestNumber" name="editTestNumber" min="0" max="1000" value="0">
     <br>
 )";
 
-// The following functions are simply for demonstration and simply report entry.
-// These are not needed, and are included only as an example of how to use
-// the many callbacks.
+
+/////////////////////////////////////////////////////////////////////////////////
+// The following functions are for demonstration and simply report entry.
+// These are not normally needed, and are included only as an example of how to
+// use the many callbacks.
+/////////////////////////////////////////////////////////////////////////////////
 void APCallback(WiFiManager *)
 {
     Serial.println("APCallback");
@@ -99,20 +110,31 @@ void PreOtaUpdateCallback()
     Serial.println("PreOtaUpdateCallback");
 }
 
+
+/////////////////////////////////////////////////////////////////////////////////
 // Special RTC code.
+/////////////////////////////////////////////////////////////////////////////////
 #if defined USE_RTC
+    /////////////////////////////////////////////////////////////////////////////
+    // UtcGetCallback()
+    //
     // This callback is invoked when NTP time is not called, and is used to
     // supply current time_t time.  In this case we read the current time from
     // the RTC, convert it to time_t, and return it.
+    /////////////////////////////////////////////////////////////////////////////
     time_t UtcGetCallback()
     {
         Serial.println("UtcGetCallback");
         DateTime t = gRtc.now();
         return t.get_time_t();
-    }
+    } // End UtcGetCallback().
 
+    /////////////////////////////////////////////////////////////////////////////
+    // UtcSetCallback()
+    //
     // This callback is invoked after NTP time is received from the NTP server.
     // It converts the time_t value to a DateTime value and sets the RTC.
+    /////////////////////////////////////////////////////////////////////////////
     void UtcSetCallback(time_t t)
     {
         Serial.println("UtcSetCallback");
@@ -122,34 +144,49 @@ void PreOtaUpdateCallback()
 
         // Reset the RTC stop flag to inidcate that the RTC time is valid.
         gRtc.oscillatorStopFlag(false);
-    }
+    } // End UtcSetCallback().
 #endif
 
+
+/////////////////////////////////////////////////////////////////////////////////
+// UpdateWebPageCallback()
+//
 // This callback is invoked when the web page needs to be updated.  This is
 // demonstration code to show how one might add an entry to the Setup web page.
+/////////////////////////////////////////////////////////////////////////////////
 void UpdateWebPageCallback(String &rWebPage, uint32_t maxSize)
 {
     Serial.println("UpdateWebPageCallback");
     rWebPage.replace("<!-- HTML END -->", EDIT_TEST_STR);
-}
+} // End UpdateWebPageCallback().
 
+
+/////////////////////////////////////////////////////////////////////////////////
+// SaveParamsCallback()
+//
 // This callback is invoked when the user saves the Setup web page.  This is
 // demonstration code to show how one might retrieve the value of an entry
 // that was added via the UpdateWebPageCallback().
+/////////////////////////////////////////////////////////////////////////////////
 void SaveParamsCallback()
 {
     Serial.println("UpdateWebPageCallback");
     Serial.printf("Integer Value = %d\n", gpWtm->GetParamInt("editTestNumber"));
-}
+} // End SaveParamsCallback().
 
+
+/////////////////////////////////////////////////////////////////////////////////
+// CheckButton()
+//
 // This function checks the reset button.  If pressed for a long time
 // (about 3.5 seconds), it will reset all of our WiFi credentials as well as
-// all timezone, DST, and NTP data then resets the processof.
+// all timezone, DST, and NTP data then resets the processor.
 // If pressed for a short time and the network is not connected, it will start
 // the config portal.
-void checkButton()
+/////////////////////////////////////////////////////////////////////////////////
+void CheckButton()
 {
-    // check for button press
+    // Check for a button press.
     if ( digitalRead(RESET_PIN) == LOW )
     {
         // Poor mans debounce/press-hold, code not ideal for production.
@@ -158,7 +195,7 @@ void checkButton()
         {
             Serial.println("Button Pressed");
             // Still holding button for 3s, reset settings and restart.
-            delay(3000); // reset delay hold
+            delay(3000); // Reset delay hold.
             if( digitalRead(RESET_PIN) == LOW )
             {
                 Serial.println("Button Held");
@@ -177,21 +214,29 @@ void checkButton()
             }
         }
     }
-}
+} // End CheckButton().
 
 
+/////////////////////////////////////////////////////////////////////////////////
+// SetLeds()
+//
 // Lights one of the clock LEDs based on the input value.  If v is true, then
 // the NTP LED will be lit and the local LED will be off.  Otherwise, the
 // local LED will be lit and the NTP LED will be off.
-void setLeds(bool v)
+/////////////////////////////////////////////////////////////////////////////////
+void SetLeds(bool v)
 {
     digitalWrite(v ? LOCAL_CLOCK_PIN : NTP_CLOCK_PIN, LOW);
     digitalWrite(v ? NTP_CLOCK_PIN : LOCAL_CLOCK_PIN, HIGH);
-}
+} // End SetLeds().
 
 
+/////////////////////////////////////////////////////////////////////////////////
+// setup()
+//
 // The Arduino setup() function.  This function initializes all the hardware
 // and WiFiTimeManager class.
+/////////////////////////////////////////////////////////////////////////////////
 void setup()
 {
     // Get the Serial class ready for use.
@@ -241,7 +286,7 @@ void setup()
     gpWtm->SetUpdateWebPageCallback(UpdateWebPageCallback);
 
     // Initialize the WiFiTimeManager class with our AP name and button selections.
-    gpWtm->Init(AP_NAME, WmSeparateButton);
+    gpWtm->Init(AP_NAME, SETUP_BUTTON);
 
     // Contact the NTP server no more than once per minute.
     gpWtm->SetMinNtpRate(60);
@@ -265,7 +310,7 @@ void setup()
 #endif
 
     // Attempt to connect to the network in non-blocking mode.
-    gpWtm->setConfigPortalBlocking(WmBlocking);
+    gpWtm->setConfigPortalBlocking(BLOCKING_MODE);
     gpWtm->setConfigPortalTimeout(0);
     if(!gpWtm->autoConnect(AP_NAME))
     {
@@ -273,23 +318,27 @@ void setup()
     }
     else
     {
-        //if you get here you have connected to the WiFi
+        // If we get here you have connected to the WiFi.
         Serial.println("connected...yeey :)");
         gpWtm->GetUtcTime();
     }
 } // End setup().
 
 
+/////////////////////////////////////////////////////////////////////////////////
+// loop()
+//
 // The Arduino loop() function.  Simply polls the WiFiTimeManager if we are not
 // already connected to the WiFi.  On a transition of the WiFi being connected,
 // we simply get the UTC time.  We also check the reset button, and as a
-// demonstration, get UTC and local time from the WiFiTimeManager and display
-// the results.
+// demonstration, periodically get UTC and local time from the WiFiTimeManager
+// and display the results.
+/////////////////////////////////////////////////////////////////////////////////
 void loop()
 {
     if(!gpWtm->IsConnected())
     {
-        // Avoid delays() in loop when non-blocking and other long running code
+        // Avoid delays() in loop when non-blocking and other long running code.
         if (gpWtm->process())
         {
             // This is the place to do something when we transition from
@@ -298,16 +347,16 @@ void loop()
         }
     }
 
-    // Check the reset button.
-    checkButton();
+    // Check and handle the reset button.
+    CheckButton();
 
-    // Read teh time every 10 seconds.
+    // Read the time every 10 seconds.
     static uint32_t lastTime = millis();
     uint32_t thisTime = millis();
-    static const uint32_t updateTime = 10000;   // 10 seconds between reading time.
+    static const uint32_t updateTime = 10000;
     if (thisTime - lastTime >= updateTime)
     {
-        // Read the time and display the resulats.
+        // Read the time and display the results.
         lastTime = thisTime;
         time_t utcTime = gpWtm->GetUtcTime();
         time_t lclTime = gpWtm->GetLocalTime();
@@ -317,7 +366,7 @@ void loop()
     }
 
     // Update the LEDs.
-    setLeds(gpWtm->UsingNetworkTime());
+    SetLeds(gpWtm->UsingNetworkTime());
     delay(1);
 
-}
+} // End loop().
