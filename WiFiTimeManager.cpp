@@ -7,7 +7,7 @@
 // capable device via any web browser.  This class (WiFiTimeManager) extends the
 // behavior of the WiFiManager class by adding the the following capaabilities:
 //      - Ability to to select the timezone via the Setup web page.
-//      - Ability to set daylight savings timne (DST) start and end information
+//      - Ability to set daylight savings time (DST) start and end information
 //        via the Setup web page.
 //      - Ability to select and automatically connect to a local NTP server
 //        to keep accurate time.
