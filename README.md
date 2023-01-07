@@ -39,7 +39,12 @@ WiFiTimeManager adds the following features:
 
 ## Installing WiFiTimeManager
 
-WiFiTimeManager is not currently known by the Arduino Library Manager, so it must be installed manually.  This process is well documented [HERE](https://docs.arduino.cc/software/ide-v1/tutorials/installing-libraries).   WiFiTimeManager is also dependent on WiFiManager, so WiFiManager will also need to be installed as described on its github page.
+WiFiTimeManager is not currently known by the Arduino Library Manager, so it must be installed manually.  This process is well documented [HERE](https://docs.arduino.cc/software/ide-v1/tutorials/installing-libraries).  Other libraries that are needed to support  WiFiTimeManager are:
+- WiFiManager at [https://github.com/tzapu/WiFiManager](https://github.com/tzapu/WiFiManager).
+- Timezone_Generic at [https://github.com/khoih-prog/Timezone_Generic](https://github.com/khoih-prog/Timezone_Generic).
+- ArduinoJson - at [https://arduinojson.org/](https://arduinojson.org/).
+- Preferences - this should be built-in.
+- ESPmDNS - this should be built-in.
 
 ---
 

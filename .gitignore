@@ -17,3 +17,6 @@ README.md.backup
 Examples/NonBlocking/WiFiTimeManager.h---
 Examples/NonBlocking/WiFiTimeManager.cpp---
 Examples/NonBlocking/WebPages.h---
+UpdateLibrary.cmd
+!UpdateLibrary.cmd
+AAUpdateLibrary.cmd

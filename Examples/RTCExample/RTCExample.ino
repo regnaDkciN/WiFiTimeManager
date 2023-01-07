@@ -45,7 +45,7 @@
     #include <DS323x_Generic.h> // https://github.com/khoih-prog/DS323x_Generic
 #endif
 
-#include "WiFiTimeManager.h"    // Manages timezone and dst.
+#include <WiFiTimeManager.h>    // Manages timezone and dst.
 
 #define RESET_PIN       14      // GPIO pin for the reset button.
 #define NTP_CLOCK_PIN   12      // GPIO pin for the NTP clock LED.
