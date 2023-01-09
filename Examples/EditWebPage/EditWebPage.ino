@@ -223,7 +223,7 @@ void setup()
     // initializes a default time that the RTC may want to override.
     gpWtm = WiFiTimeManager::Instance();
 
-    // The web page is updated in init, so setup our callback before
+    // The web page is updated in Init(), so setup our callback before
     // WiFiTimeManager::Init() is called.  In this case, we have added some
     // demonstration code above to illustrate how to add fields to the web page.
     gpWtm->SetUpdateWebPageCallback(UpdateWebPageCallback);

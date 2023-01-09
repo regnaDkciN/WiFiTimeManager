@@ -136,11 +136,11 @@ public:
     //    - pApName     - This is the network name to be used for the access point.
     //    - setupButton - Set to true if a separate "Setup" button should be
     //                    displayed on the WiFiManager home page.  When selected,
-    //                    this button will cause a separate setup to be displayed.
-    //                    The separate setup page will contain timezone parameters
-    //                    that the user may adjust.  In this case, the WiFi
-    //                    configuratioin page will not display the timezone
-    //                    parameters.  If set to false, then the timezone
+    //                    this button will cause a separate setup button to be
+    //                    displayed.  The separate setup page will contain time
+    //                    related parameters that the user may adjust.  In this
+    //                    case, the WiFi configuratioin page will not display
+    //                    the time parameters.  If set to false, then the time
     //                    parameters will be selectable from the WiFi
     //                    configuration page.
     //
