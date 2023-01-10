@@ -70,18 +70,17 @@ WiFiTimeManager *pWtm = WiFiTimeManager::Instance();
 
 - The WiFiTimeManager must be initialized via a call to Init().  By default, Init() will set the WiFiManager configuration portal to use blocking mode, and will default to the dark theme.  Init() takes two arguments as described below.
   - The first argument points to a NULL terminated character string representing the name  for the network access point (AP) that will be generated.
-  - The second argument is optional, and specifies whether a separate 'Setup' button will appear on the WiFiTimeManager home page.  If set to 'true', then a separate 'Setup' will be displayed.  If set to 'false', the timezone, DST, and NTP fields will reside below the WiFi credentials on the 'Configure WiFi' page.  This argument defaults to a value of 'true'.
+  - The second argument is optional, and points to a NULL terminated character string representing the password to be used in accessing the AP.  If not supplied, the AP will not require a password.  If used, the password should be 8 to 63 characters.
+  - The third argument is optional, and specifies whether a separate 'Setup' button will appear on the WiFiTimeManager home page.  If set to 'true', then a separate 'Setup' will be displayed.  If set to 'false', the timezone, DST, and NTP fields will reside below the WiFi credentials on the 'Configure WiFi' page.  This argument defaults to a value of 'true'.
 ```cpp
 // Initialize with our AP name and button selections.
-pWtm->Init("AP_NAME", true);
+pWtm->Init("AP_NAME", "AP_PASSWORD", true);
 ```
 
-- Finally, the WiFiTimeManager must connect to the WiFi via the autoConnect() method.
- - The first (optional) argument points to a NULL terminated character string representing the name  for the network access point (AP) that will be generated.  This should point to the same string that was passed to the Init() method.
- - The second (optional) argument specifies the AP password, if desired.  If not specified, or NULL, no password will be used.
+- Finally, the WiFiTimeManager must connect to the WiFi via the autoConnect() method.  The PA name and password that were supplied in the call to Init() are used.
 ```cpp
-// Attempt to connect with our AP name, and password.
-pWtm->autoConnect("AP_NAME", "AP_PASSWORD");
+// Attempt to connect with our AP name, and password (supplied via Init()).
+pWtm->autoConnect();
 ```
 
 With the minimal code as specified above, when the ESP32 starts it will try to connect to the WiFi.  If it fails, it will start in Access Point (AP) mode.  While in AP mode, its web page may be accessed via an IP address of 192.146.4.1.  Selecting the 'Setup' button of the web page will allow the user to set timezone, DST, and NTP parameters for the local area.  Selecting the 'Configure WiFi' button allows for setting credentials for the local WiFi network.  The 'Setup' page should be updated and saved before the 'Configure WiFi' page since once the WiFi credentials are configured, AP mode is disabled.
@@ -124,6 +123,52 @@ The WiFiTimeManager class is implemented as a singleton.  Therefore there can on
 #### WiFiTimeManager::Init()
 This method must be called after Instance(), and before autoConnect().  As its name implies, it sets up (initializes) the WiFiTimeManager instance for use. Its arguments are:
 - pApName - The name that will be seen on the network for the WiFiManager access point.  This name must be at least one character long.
+- pApPassword - The password used to access the AP.  If omitted or NULL, then no password is used.
 - setupButton - Set to true if a separate "Setup" button should be displayed on the WiFiManager home page.  When selected, this button will cause a separate setup button to be displayed.  The separate setup page will contain time parameters that the user may adjust.  In this case, the WiFi configuratioin page will not display the time parameters.  If set to false, then the time parameters will be selectable from the WiFi configuration page.
 
 Within Init(), the saved TimeParameters get restored if present.  If not, then the default values for TimeParameters get saved.  The web page gets updated in order to initialize the time values, and the web page and parameters are passed to WiFiManager.  Other parameters are set to safe values.  The config portal is set to blocking mode, and the dark theme is selected by default.  These default values may be changed by user code later if desired.
+
+#### WiFiTimeManager::autoConnect()
+This method overrides WiFiManager::autoConnect() in order to return the status of the WiFi connection, and to set the AP name and password that were passed to Init().  It automatically connects to the saved WiFi network, or starts the config portal on failure.  In blocking mode, this method will not return until a WiFi connection is made.  In non-blocking mode, the method will return after a user-settable timeout even if no WiFi connection was made.  In this case, the process() method must be periodically called from user code until the connection is made.  The method returns 'true' if a WiFi connection has been made, or false otherwise.
+
+#### WiFiTimeManager::process()
+This method overrides the WiFiManager process() method.  It handles the non-blocking mode of operation.  It takes no arguments.  It should be called periodically from user code, usually from within the Arduino loop() function, when the config portal is active (i.e. no WiFi connection has been made).  It returns immediately, and returns 'true' if a network connection has been made, or false otherwise.
+
+#### WiFiTimeManager::UpdateTimezoneRules()
+
+#### Callbacks
+
+##### WiFiTimeManager::setSaveParamsCallback()
+
+##### WiFiTimeManager::SetUtcGetCallback()
+
+##### WiFiTimeManager::SetUtcSetCallback()
+
+##### WiFiTimeManager::SetUpdateWebPageCallback()
+
+#### WiFiTimeManager::Reset()
+
+#### WiFiTimeManager::ResetData()
+
+#### WiFiTimeManager::Save()
+
+#### WiFiTimeManager::Restore()
+
+#### WiFiTimeManager::GetUtcTime()
+
+#### WiFiTimeManager::GetLocalTime()
+
+#### WiFiTimeManager::PrintDateTime()
+
+#### WiFiTimeManager::GetLocalTimezoneString()
+
+#### WiFiTimeManager::GetParamString()
+
+#### WiFiTimeManager::GetParamChars()
+
+#### WiFiTimeManager::GetParamInt()
+
+#### Miscellaneous Getters
+
+#### Miscellaneous Setters
+

@@ -134,6 +134,11 @@ public:
     //
     // Arguments:
     //    - pApName     - This is the network name to be used for the access point.
+    //    - pApPassword - Pointer to to a null terminated string representing the
+    //                    password to be used by the access point.  This argument
+    //                    is optional and if not used, the access point will not
+    //                    require a password.  If a password is used, it should be
+    //                    8 to 63 characters.
     //    - setupButton - Set to true if a separate "Setup" button should be
     //                    displayed on the WiFiManager home page.  When selected,
     //                    this button will cause a separate setup button to be
@@ -148,7 +153,8 @@ public:
     //    Returns true on successful completion.  Returns false if pApName is empty.
     //
     /////////////////////////////////////////////////////////////////////////////
-    bool Init(const char *pApName, bool setupButton = true);
+    bool Init(const char *pApName, const char *pApPassword = NULL,
+              bool setupButton = true);
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -174,17 +180,18 @@ public:
     // Overrides the WiFiManager autoConnect() method in order to return the
     // status of the WiFi connection.  Automatically connects to the saved WiFi
     // network, or starts the config portal on failure.
-    // This method is overloaded.  The version with no arguments auto generates
-    // a name for the access point.  The other version uses the specified access
-    // point name.
+    // This method is overloaded.  The version with no arguments uses the values
+    // passed to Init().  The other version uses the specified access point
+    // name and password, but should not normally be used..
     //
     // Arguments:
     //   pApName     - Pointer to a null terminated string representing the name
-    //                 to be used for the access point.
+    //                 to be used for the access point.  This argument is optional.
+    //                 If not present, then the value passed to Init() is used.
     //   pApPassword - Pointer to to a null terminated string representing the
     //                 password to be used by the access point.  This argument
-    //                 is optional and if not used, the access point will not
-    //                 require a password.  If a password is used, it should be
+    //                 is optional.  If not present, then the value passed to
+    //                 Init() is used.  If a password is used, it should be
     //                 8 to 63 characters.
     //
     // Returns:
@@ -192,7 +199,8 @@ public:
     //    'false' otherwise.
     //
     /////////////////////////////////////////////////////////////////////////////
-    boolean autoConnect() { WiFiManager::autoConnect(); return IsConnected(); }
+    boolean autoConnect()
+            { WiFiManager::autoConnect(m_pApName, m_pApPassword); return IsConnected(); }
     boolean autoConnect(char const *pApName, char const *pApPassword = NULL)
             { WiFiManager::autoConnect(pApName, pApPassword); return IsConnected(); }
 
@@ -698,6 +706,8 @@ private:
     /////////////////////////////////////////////////////////////////////////////
     // Private instance data.
     /////////////////////////////////////////////////////////////////////////////
+    const char    *m_pApName;             // Network name for AP.
+    const char    *m_pApPassword;         // AP password.
     uint32_t       m_PrintLevel;          // Status print level selection.
     time_t         m_LastTime;            // Timestamp from the last NTP packet.
     WiFiUDP        m_Udp;                 // UDP instance for tx & rx of UDP packets.

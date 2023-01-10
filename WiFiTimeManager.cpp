@@ -51,7 +51,8 @@ static WiFiManagerParameter tzSelectField;
 // Initialize our instance data.
 //
 /////////////////////////////////////////////////////////////////////////////////
-WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_PrintLevel(PL_DFLT_MASK),
+WiFiTimeManager::WiFiTimeManager() : WiFiManager(), m_pApName(NULL),
+                                     m_pApPassword(NULL), m_PrintLevel(PL_DFLT_MASK),
                                      m_LastTime(), m_Udp(),
                                      m_UsingNetworkTime(false), m_Params(),
                                      m_Timezone(m_Params.m_DstStartRule, m_Params.m_DstEndRule),
@@ -101,20 +102,26 @@ WiFiTimeManager *WiFiTimeManager::Instance()
 //
 // Arguments:
 //    - pApName     - This is the network name to be used for the access point.
+//    - pApPassword - Pointer to to a null terminated string representing the
+//                    password to be used by the access point.  This argument
+//                    is optional and if not used, the access point will not
+//                    require a password.  If a password is used, it should be
+//                    8 to 63 characters.
 //    - setupButton - Set to true if a separate "Setup" button should be
 //                    displayed on the WiFiManager home page.  When selected,
 //                    this button will cause a separate setup button to be
 //                    displayed.  The separate setup page will contain time
 //                    related parameters that the user may adjust.  In this case,
 //                    the WiFi configuratioin page will not display the time
-//                    parameters.  If set to false, then the time parameters 
+//                    parameters.  If set to false, then the time parameters
 //                    will be selectable from the WiFi configuration page.
 //
 // Returns:
 //    Returns true on successful completion.  Returns false if pApName is empty.
 //
 /////////////////////////////////////////////////////////////////////////////
-bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
+bool WiFiTimeManager::Init(const char *pApName, const char *pApPassword,
+                           bool setupButton)
 {
     // Set the WiFi mode.  ESP defaults to STA+AP.
     WiFi.mode(WIFI_STA);
@@ -124,6 +131,10 @@ bool WiFiTimeManager::Init(const char *pApName, bool setupButton)
     {
         return false;
     }
+
+    // Save AP connection data.
+    m_pApName     = pApName;
+    m_pApPassword = pApPassword;
 
     // Restore our saved state info.  If no state info has been saved yet, then
     // save our default values.

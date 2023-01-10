@@ -43,6 +43,8 @@ static const bool BLOCKING_MODE = true;
                                 // Use blocking mode.
 static const char *AP_NAME = "WiFi Clock Setup";
                                 // AP name user will see as network device.
+static const char *AP_PWD  = NULL;
+                                // AP password.  NULL == no password.
 
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -126,15 +128,15 @@ void setup()
     // initializes a default time that the RTC may want to override.
     gpWtm = WiFiTimeManager::Instance();
 
-    // Initialize the WiFiTimeManager class with our AP name and button selections.
-    gpWtm->Init(AP_NAME, SETUP_BUTTON);
+    // Initialize the WiFiTimeManager class with our AP and button selections.
+    gpWtm->Init(AP_NAME, AP_PWD, SETUP_BUTTON);
 
     // Contact the NTP server no more than once per minute.
     gpWtm->SetMinNtpRate(60);
 
     // Attempt to connect to the network in blocking mode.
     gpWtm->setConfigPortalBlocking(BLOCKING_MODE);
-    if(!gpWtm->autoConnect(AP_NAME))
+    if(!gpWtm->autoConnect())
     {
         Serial.println("Failed to connect or hit timeout");
     }

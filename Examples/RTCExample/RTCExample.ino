@@ -60,7 +60,9 @@ static const bool SETUP_BUTTON  = true;
 static const bool BLOCKING_MODE = false; // Use non-blocking mode.
 static const char *AP_NAME = "WiFi Clock Setup";
                                 // AP name user will see as network device.
-                                
+static const char *AP_PWD  = NULL;
+                                // AP password.  NULL == no password.
+
 // Example HTML code to demonstrate insertion of data fields on the Setup web page.
 static const char EDIT_TEST_STR[] = R"(
     <br>
@@ -267,7 +269,7 @@ void setup()
     gpWtm = WiFiTimeManager::Instance();
 
 #if defined USE_RTC
-    // Initialize I2C for RTC.
+    // Initialize I2C for the RTC.
     Wire.begin();
     gRtc.attach(Wire);
 
@@ -285,8 +287,8 @@ void setup()
     // demonstration code above to illustrate how to add fields to the web page.
     gpWtm->SetUpdateWebPageCallback(UpdateWebPageCallback);
 
-    // Initialize the WiFiTimeManager class with our AP name and button selections.
-    gpWtm->Init(AP_NAME, SETUP_BUTTON);
+    // Initialize the WiFiTimeManager class with our AP and button selections.
+    gpWtm->Init(AP_NAME, AP_PWD, SETUP_BUTTON);
 
     // Contact the NTP server no more than once per minute.
     gpWtm->SetMinNtpRate(60);
@@ -312,7 +314,7 @@ void setup()
     // Attempt to connect to the network in non-blocking mode.
     gpWtm->setConfigPortalBlocking(BLOCKING_MODE);
     gpWtm->setConfigPortalTimeout(0);
-    if(!gpWtm->autoConnect(AP_NAME))
+    if(!gpWtm->autoConnect())
     {
         Serial.println("Failed to connect or hit timeout");
     }
