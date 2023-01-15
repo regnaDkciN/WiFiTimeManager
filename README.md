@@ -132,9 +132,10 @@ Within Init(), the saved TimeParameters get restored if present.  If not, then t
 This method overrides WiFiManager::autoConnect() in order to return the status of the WiFi connection, and to set the AP name and password that were passed to Init().  It automatically connects to the saved WiFi network, or starts the config portal on failure.  In blocking mode, this method will not return until a WiFi connection is made.  In non-blocking mode, the method will return after a user-settable timeout even if no WiFi connection was made.  In this case, the process() method must be periodically called from user code until the connection is made.  The method returns 'true' if a WiFi connection has been made, or false otherwise.
 
 #### WiFiTimeManager::process()
-This method overrides the WiFiManager process() method.  It handles the non-blocking mode of operation.  It takes no arguments.  It should be called periodically from user code, usually from within the Arduino loop() function, when the config portal is active (i.e. no WiFi connection has been made).  It returns immediately, and returns 'true' if a network connection has been made, or false otherwise.
+This method overrides WiFiManager::process().  It handles the non-blocking mode of operation.  It takes no arguments.  It should be called periodically from user code, usually from within the Arduino loop() function, when the config portal is active (i.e. no WiFi connection has been made).  It returns immediately, and returns 'true' if a network connection has been made, or false otherwise.
 
 #### WiFiTimeManager::UpdateTimezoneRules()
+This method updates the current timezone rules.  WiFiTimeManager provides methods to get and set each of the values for the start and end DST times as well as the capability of enabling or disabling DST.  UpdateTimezoneRules() should be called after any changes are made to the current timezone rules.  The user should not normally need to use this method since the timezone rules usually get initialized via the Setup web page.
 
 #### Callbacks
 

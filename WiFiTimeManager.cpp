@@ -708,11 +708,14 @@ time_t WiFiTimeManager::GetLocalTime()
 /////////////////////////////////////////////////////////////////////////////
 void WiFiTimeManager::PrintDateTime(time_t t, const char *pTz)
 {
-    char buf[32];
-    sprintf(buf, "%.2d:%.2d:%.2d %s %.2d %s %d %s",
-          hour(t), minute(t), second(t), dayShortStr(weekday(t)), day(t),
-          monthShortStr(month(t)), year(t), pTz ? pTz : "");
-    Serial.println(buf);
+    // The Arduino time library uses the same buffer to return the strings for
+    // dayShortStr() and monthShortStr().  Therefore, we need to split the
+    // printing into 2 printf calls.  The first call includes dayShortStr, 
+    // the second call includes monthShortStr().
+    Serial.printf("%.2d:%.2d:%.2d %s ", 
+        hour(t), minute(t), second(t), dayShortStr(weekday(t)));
+    Serial.printf("%.2d %s %d %s\n",
+        day(t), monthShortStr(month(t)), year(t), pTz ? pTz : "");
 } // End PrintDateTime().
 
 
