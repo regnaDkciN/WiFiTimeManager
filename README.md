@@ -92,6 +92,8 @@ With the minimal code as specified above, when the ESP32 starts it will try to c
 WiFiTimeManager extends the Arduino WiFiManager class.  It adds the ability to easily set timezone, DST, and NTP server data via extending the WiFiManager web page.  It uses the Arduino Timezone_Generic library to manage timezone and DST.  The ESP32 Preferences library is used to save and restore all setup data across power cycles.  Once connected to WiFi, WiFiTimeManager automatically connects to the specified NTP server and can supply accurate UTC and local time to the user. 
 
 ### Overridden Methods
+WiFiManager methods all begin with lower case letters.  WiFiTimeManager methods all begin with capital letters.  Therefore, any overridden methods may be recognized by the first letter of their method being lower case.  All others are new to WiFiTimeManager.
+
 Most WiFiManager methods are still available with WiFiTimeManager.  However, several WiFiManager methods have been overridden or disabled by WiFiTimeManager.  These methods include:
 
 - WiFiManager::addParameter() - this method is used inside WiFiTimeManager::Init() and is hidden from user code.  Any attempt to invoke it will result in a compile error.  WiFiTimeManager uses a different method of adding parameters, and is described later.
@@ -135,17 +137,100 @@ This method overrides WiFiManager::autoConnect() in order to return the status o
 This method overrides WiFiManager::process().  It handles the non-blocking mode of operation.  It takes no arguments.  It should be called periodically from user code, usually from within the Arduino loop() function, when the config portal is active (i.e. no WiFi connection has been made).  It returns immediately, and returns 'true' if a network connection has been made, or false otherwise.
 
 #### WiFiTimeManager::UpdateTimezoneRules()
-This method updates the current timezone rules.  WiFiTimeManager provides methods to get and set each of the values for the start and end DST times as well as the capability of enabling or disabling DST.  UpdateTimezoneRules() should be called after any changes are made to the current timezone rules.  The user should not normally need to use this method since the timezone rules usually get initialized via the Setup web page.
+This method updates the timezone rules.  WiFiTimeManager provides methods to get and set each of the values for the start and end DST times as well as the capability of enabling or disabling DST.  UpdateTimezoneRules() should be called after any changes are made to the current timezone rules.  The user should not normally need to use this method since the timezone rules usually get initialized via the Setup web page.
 
 #### Callbacks
+This section describes the new callbacks supported by WiFiTimeManager.  A number of callbacks have been added at strategic places in the code to allow easy customization of WiFiTimeManager.  WiFiManager already provided several useful callbacks, most of which may still be used by the application. 
+
+In general, pointers to callback functions are installed in the Arduino setup() function between the WiFiTimeManager Init() and autoConnect() calls.  For example, here is an outline of where to do it:
+
+```cpp
+void setup()
+{
+    . . .
+    WiFiTimeManager *pWtm = WiFiTimeManager::Instance();
+    . . .
+    pWtm->Init(AP_NAME, AP_PWD, SETUP_BUTTON);
+    . . .
+    pWtm->setSaveParamsCallback(SaveParamsCallback);
+    . . .
+    pWtm->autoConnect();
+}
+```
+
 
 ##### WiFiTimeManager::setSaveParamsCallback()
+This callback overrides WiFiManager::setSaveParamsCallback().  It saves a pointer to a user function that is called when saving the Setup web page after the standard parameters have been  handled by WiFiTimeManager.  It is normally used to fetch the values of parameter that were added to the Setup page by the user.  For example, if an integer parameter named ''editTestNumber" was added to the Setup page, a simple callback function that prints the integer to the serial port when the parameters are saved might be:
 
-##### WiFiTimeManager::SetUtcGetCallback()
+```cpp
+void SaveParamsCallback()
+{
+    WiFiTimeManager *pWtm = WiFiTimeManager::Instance();
+    Serial.printf("Integer Value = %d\n", pWtm->GetParamInt("editTestNumber"));
+} // End SaveParamsCallback().
+```
 
-##### WiFiTimeManager::SetUtcSetCallback()
+
+See SetUpdateWebPageCallback() for more information.  
 
 ##### WiFiTimeManager::SetUpdateWebPageCallback()
+Sets a callback that will be invoked when when the Setup web page is being updated.  This callback can be used to monitor or modify the contents of the Setup web page.  It is normally used to add user parameters to the Setup web page.
+
+The callback function takes two arguments.  The  first argument is a reference to a very long String that contains the entire contents of the Setup web page that will be sent to the web client.   It may be modified as needed (see the EditWebPage example).  The second argument specifies the maximum size that is permissible for the String.  Upon return from the callback, the contents of the String will be safely copied into a buffer that will be sent to the client.  If the size of the (modified) String exceeds  the value specified maximum buffer size, the buffer will be truncated, so be careful.
+
+Several comments appear within the string that may be employed to locate specific places within the standard
+web page.  The user can use these comments to insert relevant HTML or javascript code.  These comments are:
+-  `"<!-- HTML START -->"`  
+             This marks the start of HTML, which is also the start of the web page string.
+ - `"<!-- HTML END -->"`  
+             This marks the end of HTML and is just before the end of the web page body.
+ - `"// JS START"`  
+             This marks the start of the java script, just after the `<script>` declaration.
+- `"// JS ONLOAD"`  
+             This marks a spot within the onload() function where java script initialization code can be added.
+ - `"// JS SAVE"`  
+             This marks a spot within the function that is executed when the submit (save) button is pressed.  It can be used to perform java script save actions.
+ - `"// JS END"`  
+             This marks the end of of the java script, just before the `</script>` declaration.
+
+As an example, if the user wants to add a simple integer parameter named "editTestNumber" to the standard web page, the following code outline could be used:
+
+```cpp
+// Example HTML code to demonstrate insertion of data fields on the Setup web page.
+static const char EDIT_TEST_STR[] = R"(
+    <br>
+    <h3 style="display:inline">AN INTEGER VALUE:</h3>
+    <input type="number" id="editTestNumber" name="editTestNumber" min="0" max="1000" value="0">
+    <br>
+)";
+
+void UpdateWebPageCallback(String &rWebPage, uint32_t maxSize)
+{
+    rWebPage.replace("<!-- HTML END -->", EDIT_TEST_STR);
+} // End UpdateWebPageCallback().
+
+void setup()
+{
+    . . .
+    WiFiTimeManager *pWtm = WiFiTimeManager::Instance();
+    . . .
+    // The web page is updated in Init(), so setup our callback before
+    // WiFiTimeManager::Init() is called.
+    pWtm->SetUpdateWebPageCallback(UpdateWebPageCallback);
+    . . .
+    pWtm->Init(AP_NAME, AP_PWD, SETUP_BUTTON);
+    . . .
+    pWtm->autoConnect();
+}
+``` 
+In this case, the callback replaces the `"<!-- HTML END -->"` substring with HTML code to add an integer parameter.  **Take  special note that SetUpdateWebPageCallback() should be called before Init()  due to Init() performing a web page update within its body.**
+
+##### WiFiTimeManager::SetUtcGetCallback()
+Sets a callback that will be invoked when non-NTP time is needed.  This callback can be used to read time from a hardware real time clock, or other time source when NTP time is not present or desired.  In general, the NTP server should not be polled very frequently.  In general, NTP servers should not be polled very frequently.  WiFiTimeManager defaults to accessing the NTP server no more than once every 60 minutes.  This can be overridden via a call to SetMinNtpRate().  If the user attempts to get time more frequently than the minimum NTP rate, the time is normally read from the Arduino time library which keeps pretty good track of time.  The user can override this by setting this callback to code that returns its idea of the current time in Unix time units (time_t in seconds since January 1, 1970).  For example, if a hardware RTC is present, it can be read and its value returned by this callback.  See RTCExample for example code.
+
+##### WiFiTimeManager::SetUtcSetCallback()
+Sets a callback that will be invoked when NTP UTC time has been received.  This callback can be used to set the time of a hardware real time clock or other alternate time source.  When called, the callback receives the Unix (time_t  in seconds since January 1, 1970) time that was just received from the NTP server as an argument.  See RTCExample for example code.
+
 
 #### WiFiTimeManager::Reset()
 
@@ -158,6 +243,8 @@ This method updates the current timezone rules.  WiFiTimeManager provides method
 #### WiFiTimeManager::GetUtcTime()
 
 #### WiFiTimeManager::GetLocalTime()
+
+#### WiFiTimeManager::GetDateTimeString()
 
 #### WiFiTimeManager::PrintDateTime()
 

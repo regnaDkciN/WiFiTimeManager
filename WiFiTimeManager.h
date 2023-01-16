@@ -263,9 +263,7 @@ public:
     //   func - Pointer to the function to be called any time the Setup web
     //          page gets updated.  A NULL value is acceptable.
     //
-    // Note: When this callback is invoked, the (long) NULL terminated string
-    //       that represents the Setup web page is contained in the WebPageBuffer.
-    //       The rWebPage argument of the callback is a reference to a String
+    // Note: The rWebPage argument of the callback is a reference to a String
     //       that contains the web page that will be sent to the client.  It may
     //       be modified as needed.  The maxSize argument of the callback is the
     //       maximum size of the String in rWebPage.
@@ -296,7 +294,7 @@ public:
     //              the submit (save) button is pressed.  It can be used to
     //              perform java script save actions.
     //          "// JS END"
-    //              This marks the of of the java script, just before the
+    //              This marks the end of of the java script, just before the
     //              </script> declaration.
     //
     /////////////////////////////////////////////////////////////////////////////
@@ -382,6 +380,27 @@ public:
     //
     /////////////////////////////////////////////////////////////////////////////
     time_t GetLocalTime();
+
+
+    /////////////////////////////////////////////////////////////////////////////
+    // GetDateTimeString
+    //
+    // Format and print a unix time_t value, with a time zone appended.
+    //
+    // Arguments:
+    //   pBuf - Pointer to buffer that will receive the time string.  Must be at
+    //          least 32 characters long to receive the full string.  If the buffer
+    //          is shorter than 32 characters, the time string will be truncated.
+    //   size - The size, in bytes, of buf;
+    //   t    - time_t value containing the time to be displayed.
+    //   pTz  - Pointer to the timezone string associated with 't'.  NULL is OK.
+    //
+    // Returns:
+    //   Always returns the number of characters in the time string minus the
+    //   terminating NULL.
+    //
+    /////////////////////////////////////////////////////////////////////////////
+    int GetDateTimeString(char *pBuf, int size, time_t t, const char *pTz);
 
 
     /////////////////////////////////////////////////////////////////////////////

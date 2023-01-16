@@ -697,6 +697,44 @@ time_t WiFiTimeManager::GetLocalTime()
 
 
 /////////////////////////////////////////////////////////////////////////////
+// GetDateTimeString
+//
+// Format and print a unix time_t value, with a time zone appended.
+//
+// Arguments:
+//   pBuf - Pointer to buffer that will receive the time string.  Must be at
+//          least 32 characters long to receive the full string.  If the buffer
+//          is shorter than 32 characters, the time string will be truncated.
+//   size - The size, in bytes, of buf;
+//   t    - time_t value containing the time to be displayed.
+//   pTz  - Pointer to the timezone string associated with 't'.  NULL is OK.
+//
+// Returns:
+//   Always returns the number of characters in the time string minus the
+//   terminating NULL.
+//
+/////////////////////////////////////////////////////////////////////////////
+int WiFiTimeManager::GetDateTimeString(char *pBuf, int size, time_t t,
+                                       const char *pTz)
+{
+    // The Arduino time library uses the same buffer to return the strings for
+    // dayShortStr() and monthShortStr().  Therefore, we need to split the
+    // printing into 2 printf calls.  The first call includes dayShortStr(),
+    // the second call includes monthShortStr().
+    int count = snprintf(pBuf, size, "%.2d:%.2d:%.2d %s ",
+        hour(t), minute(t), second(t), dayShortStr(weekday(t)));
+    if (count < size)
+    {
+        count += snprintf(pBuf + count, size - count, "%.2d %s %d %s",
+            day(t), monthShortStr(month(t)), year(t), pTz ? pTz : "");
+    }
+
+    // Let the user know how big the string is.
+    return count;
+} // End GetDateTimeString().
+
+
+/////////////////////////////////////////////////////////////////////////////
 // PrintDateTime
 //
 // Format and print a unix time_t value, with a time zone appended.
@@ -708,14 +746,12 @@ time_t WiFiTimeManager::GetLocalTime()
 /////////////////////////////////////////////////////////////////////////////
 void WiFiTimeManager::PrintDateTime(time_t t, const char *pTz)
 {
-    // The Arduino time library uses the same buffer to return the strings for
-    // dayShortStr() and monthShortStr().  Therefore, we need to split the
-    // printing into 2 printf calls.  The first call includes dayShortStr, 
-    // the second call includes monthShortStr().
-    Serial.printf("%.2d:%.2d:%.2d %s ", 
-        hour(t), minute(t), second(t), dayShortStr(weekday(t)));
-    Serial.printf("%.2d %s %d %s\n",
-        day(t), monthShortStr(month(t)), year(t), pTz ? pTz : "");
+    const int MAX_TIME_STRING = 32;
+    char buf[MAX_TIME_STRING];
+
+    // Get the time string and print it.
+    GetDateTimeString(buf, MAX_TIME_STRING, t, pTz);
+    Serial.println(buf);
 } // End PrintDateTime().
 
 
