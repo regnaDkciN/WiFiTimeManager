@@ -232,31 +232,105 @@ Sets a callback that will be invoked when non-NTP time is needed.  This callback
 Sets a callback that will be invoked when NTP UTC time has been received.  This callback can be used to set the time of a hardware real time clock or other alternate time source.  When called, the callback receives the Unix (time_t  in seconds since January 1, 1970) time that was just received from the NTP server as an argument.  See RTCExample for example code.
 
 
-#### WiFiTimeManager::Reset()
-
 #### WiFiTimeManager::ResetData()
+This method resets/clears any saved network connection credentials (network SSID and password) and all timezone and NTP data that may have been previously saved.  The next reboot will cause the WiFi Manager access point to execute and new set of network credentials, timezone, DST, and NTP data will be needed.
+
+#### WiFiTimeManager::Reset()
+This method is similar to ResetData() with the exception that Reset() also deletes all the WiFiTimeManager data from NVS.  It removes all traces of the timezone, DST, and NTP data from NVS.  This method is not normally needed, but in cases where a different system will be loaded onto the ESP32, this method will cleanup so that no trace of WiFiTimeManager data will remain.  Note that WiFiManager WiFi credentials are cleared, but not removed.
 
 #### WiFiTimeManager::Save()
+Saves the current state data including timezone, DST, and NTP data to NVS.  As an optimization, if the state data has not changed since the last save, the data will not be saved.  Returns 'true' if successful and 'false' otherwise.
 
 #### WiFiTimeManager::Restore()
+Restores the timezone, DST, and NTP data from NVS.  The data read from NVS is validated before being used.  If the saved data is found to be invalid, then the data read from NVS is ignored, and the current timezone, DST and NTP data is unaffected.  Returns 'true' on success, and 'false' otherwise.
 
 #### WiFiTimeManager::GetUtcTime()
+Returns the best known value for UTC time (time_t  in seconds since January 1, 1970).  If it has been a while since the NTP server has been contacted, then a new NTP request is sent, and its returned data is used to update the local clock.  If it is too soon since the server was contacted, then the user supplied UtcGetCallback (if any) is called to allow the user to update clock time (i.e. an RTC).  If no user supplied UtcGetCallback is present, then the Arduino time library version of current UTC time is returned.
 
 #### WiFiTimeManager::GetLocalTime()
+Returns the best known value for local time.  Converts the best known UTC time to local time and returns its value.  See GetUtcTime().
 
 #### WiFiTimeManager::GetDateTimeString()
+Formats and print a Unix time_t value, with a time zone label appended.  Takes a pointer to a buffer that will hold the returned time string, the size of the buffer, the Unix time value to be displayed, and an optional pointer to a timezone string.  The buffer must be at least 32 characters long to receive the full string.  If the buffer is shorter than 32 characters, the time string will be truncated.  The optional timezone string will be appended to the end of the time string.  This method returns the length in bytes of the returned string.  For example, the following code:
+```cpp
+    . . .
+    WiFiTimeManager *pWtm = WiFiTimeManager::Instance();
+    pWtm->PrintDateTime(utcTime, "UTC");
+    . . .
+``` 
+may produce a string similar to the following:  
+   ```16:01:54 Tue 17 Jan 2023 UTC```
 
 #### WiFiTimeManager::PrintDateTime()
+This method simply calls GetDateTimeString() and prints it to the Serial port with a terminating line feed.
 
 #### WiFiTimeManager::GetLocalTimezoneString()
+This method returns a pointer to the currently active timezone string.  For example, assume that the timezone is Eastern Time (EST) and DST starts on the second Sunday of March at 2 AM (EDT), and ends on the first Sunday of November at 2 AM (EST).  Then on the 17th of January 2023, this method will return a pointer to "EST".  On the first of April 2023, this method will return a pointer to "EDT".
 
 #### WiFiTimeManager::GetParamString()
+This method returns the last value read for a specified Setup parameter as a String.  Its only argument is the String name of the parameter whose value is to be returned. If successful, the String value of the specified parameter is returned.  An empty String is returned on failure.
 
 #### WiFiTimeManager::GetParamChars()
+Returns the last value read for a specified Setup parameter as a NULL terminated character string.  It takes three arguments: 
+- name - String containing the name of the argument whose value is to be returned.
+- pBuf - Pointer to the buffer in which the parameter's value is to be returned.
+- size - Size of the buffer pointed to by pBuf.  
+It returns the value pass as pBuf.  The returned buffer will contain the value of the specified parameter if successful, or an empty buffer on failure.
 
 #### WiFiTimeManager::GetParamInt()
+Returns the last value read for a specified Setup parameter as an integer value.  As an argument it takes the String specifying the parameter to be read.  It always the integer (int) value of the specified parameter, or 0 on failure.
 
-#### Miscellaneous Getters
+#### Miscellaneous Timezone/DST/NTP Getters and Setters
+All of the TimeParameters data items may be individually read or set via inline methods in WiFiTimeManager.h.  Note that after setting any of these parameters to new values, a call should be made to UpdateTimezoneRules().  These getters and setters include:
+- GetTzOfst(), SetTzOfst() - Timezone offset in minutes.
+- GetTzAbbrev(), SetTzAbbrev() - Timezone abbreviation (i.e. "EST").
+- GetUseDst(), SetUseDst() - Use DST (true or false).
+- GetDstOfst(), SetDstOfst() - DST offset in minutes.
+- GetDstAbbrev(), SetDstAbbrev() - DST abbreviation (i.e. "EDT").
+- GetDstStartWk(), SetDstStartWk() - DST start week number (Last = 0, First, Second, Third, Fourth).
+- GetDstStartDow(), SetDstStartDow() - DST start day of week (Sun = 1, Mon, Tue, Wed, Thu, Fri, Sat).
+- GetDstStartMonth(), SetDstStartMonth() - DST start month (1 - 12).
+- GetDstStartHour(), SetDstStartHour() - DST start hour (0 - 23).
+- GetDstStartOfst(), SetDstStartOfst() - DST start offset in minutes.
+- GetDstEndWk(), SetDstEndWk() - DST end week number (Last = 0, First, Second, Third, Fourth).
+- GetDstEndDow(), SetDstEndDow() - DST end day of week (Sun = 1, Mon, Tue, Wed, Thu, Fri, Sat).
+- GetDstEndMonth(), SetDstEndMonth() - DST end month (1 - 12).
+- GetDstEndHour(), SetDstEndHour() - DST end hour (0 - 23).
+- GetDstEndOfst(), SetDstEndOfst() - DST end offset in minutes.
+- GetNtpAddr(), SetNtpAddr() - NTP server address (i.e. "time.nist.gov").
+- GetNtpPort(), SetNtpPort() - NTP server port (i.e. 123).
 
-#### Miscellaneous Setters
+
+#### Miscellaneous Methods
+##### WiFiTimeManager::GetMinNtpRate(), WiFiTimeManager::SetMinNtpRate()
+These methods get and set the minimum NTP rate in seconds.  In general, NTP servers should not be polled very frequently.  The default value for WiFiTimeManager is no more than once every 60 minutes.  This value may be changed via SetMinNtpRate().  However, the absolute minimum rate allowed is once every 4 seconds.  Values smaller than this will be limited by SetMinNtpRate() to 4 seconds.
+
+##### WiFiTimeManager::IsConnected()
+This method returns 'true' if a WiFi connection is currently active, or false otherwise.
+
+##### WiFiTimeManager::UsingNetworkTime()
+This method returns 'true' if NTP time was successfully received the last time it was attempted.  It returns 'false' otherwise.
+
+##### WiFiTimeManager::SetPrintLevel()
+WiFiTimeManager code contains several status and debug print statements that are meant to help verify its operation.  These prints are divided into three classes:
+- Warnings - These messages occur when an unexpected operation fails.  These failures include:
+   - When a Save() to NVS fails.
+   - When a Restore() from NVS fails.
+   - When an NTP response is not received in response to an NTP request.
+- Info - These are informational messages that indicate the progress of things, and can be generally useful.
+- Debug - These are verbose messages that give information that is useful for debugging.
+
+The SetPrintLevel() method may be used to enable/disable specific levels of messages as desired.  Several constants have been defined to specify the desired level as follows:
+- WiFiTimeManager::PL_NONE_MASK - Use this to disable all prints.
+- WiFiTimeManager::PL_WARN_MASK  - Use this to enable warning prints.
+- WiFiTimeManager::PL_INFO_MASK  - Use this to enable info and warning prints.
+- WiFiTimeManager::PL_DEBUG_MASK - Use this to enable all prints.
+
+The default print level is PL_WARN_MASK.  In general, final code should use either PL_NONE_MASK or PL_WARN_MASK.
+
+### General Notes
+#### Explain use of "Partition Scheme" in Arduino to set size of memory used by SPIFFS - set to "Huge APP"
+#### Explain non-blocking mode
+#### Explain user parameters
+
 

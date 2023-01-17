@@ -356,11 +356,11 @@ public:
     //
     // Returns the best known value for UTC time.  If it has been a while since
     // the NTP server has been contacted, then a new NTP request is sent, and its
-    // returned data is used to update the local clock.  If it has been too soon
-    // since the server was contacted, then the RTC clock (if any) time is used.
-    // If not too soon, but no RTC, then the time is estimated as the last known
-    // good time value plus the amount of time that has elapsed since it was
-    // established.
+    // returned data is used to update the local clock.  If it is too soon since
+    // the server was contacted, then the user supplied UtcGetCallback (if any)
+    // is called to allow the user to update clock time (i.e. an RTC).  If no
+    // user supplied UtcGetCallback is present, then the Arduino time library
+    // version of current UTC time is returned.
     //
     // Returns:
     //   Returns the best known value for the current UTC time.
@@ -385,7 +385,7 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // GetDateTimeString
     //
-    // Format and print a unix time_t value, with a time zone appended.
+    // Format and print a unix time_t value, with a time zone label appended.
     //
     // Arguments:
     //   pBuf - Pointer to buffer that will receive the time string.  Must be at
@@ -512,6 +512,7 @@ public:
     char    *GetNtpAddr()             { return m_Params.m_NtpAddr; }
     uint32_t GetNtpPort()       const { return m_Params.m_NtpPort; }
     bool     UsingNetworkTime() const { return m_UsingNetworkTime; }
+    uint32_t GetMinNtpRate()    const { return m_MinNtpRateSec; }
 
     // Min and max constants for selectable fields.
     // Constants (Last, Fourth, ...) defined in Timezone_Generic.hpp.
