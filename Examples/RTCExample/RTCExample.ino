@@ -29,7 +29,7 @@
 // can be found on github at: https://github.com/regnaDkciN/WiFiTimeManager .
 //
 // History:
-// - jmcorbett 03-JAN-2023 Original creation.
+// - jmcorbett 19-JAN-2023 Original creation.
 //
 // Copyright (c) 2023, Joseph M. Corbett
 //
@@ -45,7 +45,7 @@
     #include <DS323x_Generic.h> // https://github.com/khoih-prog/DS323x_Generic
 #endif
 
-#include <WiFiTimeManager.h>    // Manages timezone and dst.
+#include <WiFiTimeManager.h>    // Manages timezone, DST, and NTP.
 
 #define RESET_PIN       14      // GPIO pin for the reset button.
 #define NTP_CLOCK_PIN   12      // GPIO pin for the NTP clock LED.
