@@ -406,4 +406,7 @@ The Arduino IDE has provided a way to re-distribute flash memory in order to pro
 ![Arduino IDE Partition Schemes](https://i.imgur.com/mWNS8eR.png)
 The default Partition Scheme allocates 1.2MB for the application, and 1.5MB for NVS.  This allocation may be changed to set aside more space for the application if needed.  For a better explanation see [Partition Schemes in the Arduino IDE](https://robotzero.one/arduino-ide-partitions/).
 
+### Possible Memory Reduction
+The web page string contained in WebPages.h is formatted for readability, and contains many comments that may be removed.  A test was performed in which all of the unneeded comments were removed.  The end result was that only about 1KB of memory was saved.  It was decided that it was better to keep the comments.  This is a possible area to look at in dire situations, but should not normally be needed.
+
 
