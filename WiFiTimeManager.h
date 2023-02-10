@@ -19,19 +19,74 @@
 // can be found on github at: https://github.com/regnaDkciN/WiFiTimeManager .
 //
 // History:
+// - jmcorbett 10-FEB-2023
+//   Major rework to replace use of Timezone_Generic library with ESP32 SNTP
+//   library.  Several interface changes were made as a result:
+//   o GetUtcTime() now takes a pointer to a tm structure in which the broken-down
+//     UTC time gets stored.  Also returns the tm pointer.
+//   o Added GetUtcTimeT() to return broken-down UTC time.  Takes a force
+//     argument which GetUtcTime() used to use.
+//   o GetDateTimeString() removed timezone argument and replaced time_t
+//     argument with pointer to tm structure.
+//   o GetLocalTime() added a pointer to tm structure argument, and return it.
+//   o PrintDateTime() removed timezone argument and replaced time_t
+//     argument with pointer to tm structure.
+//   o Renamed SetMinNtpRate() to SetMinNtpRateSec().
+//   o Renamed GetMinNtpRate() to GetMinNtpRateSec().
+//   o Removed NTP port selection since port 123 is universally used.
+//
 // - jmcorbett 19-JAN-2023 Original creation.
 //
 // Copyright (c) 2023, Joseph M. Corbett
 //
 /////////////////////////////////////////////////////////////////////////////////
 
-#if !defined TIMESETTINGS_H
-#define TIMESETTINGS_H
+#if !defined WIFITIMEMANAGER_H
+#define WIFITIMEMANAGER_H
 
 #include <WiFiManager.h>        // Manage connection. https://github.com/tzapu/WiFiManager
 #include <string.h>             // For strncpy().
-#include <Timezone_Generic.hpp> // For timezone handling.
-#include "WebPages.h"           // For our web page character string.
+#include <esp_sntp.h>           // For ESP32 SNTP library.
+#include "WebPages.h"          // To define MAX_WEB_PAGE_SIZE which depends onTZ_SELECT_STR.
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// Define some enums that help with DST configuration:
+// - DayOfWeek_t   enumerates the days of the week.
+// - WeekOfMonth_t enumerates the weeks of the month.
+// - Month_t       enumerates the months of the year.
+/////////////////////////////////////////////////////////////////////////////////
+
+enum DayOfWeek_t
+{
+    dowSun = 0, dowMon, dowTue, dowWed, dowThu, dowFri, dowSat
+};
+
+enum WeekOfMonth_t
+{
+    wkFirst = 1, wkSecond, wkThird, wkFour, wkLast
+};
+
+enum Month_t
+{
+    mJan = 1, mFeb, mMar, mApr, mMay, mJun, mJul, mAug, mSep, mOct, mNov, mDec
+};
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// TimeChangeInfo
+//
+// Structure that is used to specify start and end dates for DST.
+/////////////////////////////////////////////////////////////////////////////////
+struct TimeChangeInfo
+{
+    char    abbrev[6];    // Five chars max.
+    uint8_t week;         // wkFirst, wkSecond, wkThird, wkFour, or wkLast.
+    uint8_t dow;          // day of week, 0 = Sun, 1 = Mon, ... 6 = Sat.
+    uint8_t month;        // 1=Jan, 2=Feb, ... 12=Dec
+    uint8_t hour;         // 0-23
+    int     offset;       // offset from UTC in minutes
+};
 
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -41,29 +96,28 @@
 // startup.  The TP_VERSION value should be bumped any time a change is made
 // to the structure.
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-static const uint32_t TP_VERSION           = 4;       // Struct version.  Bump on changes.
+static const uint32_t TP_VERSION           = 7;       // Struct version.  Bump on changes.
 static const int32_t  DFLT_TZ_OFST         = -300;    // Eastern time (5 hrs behind).
 static const char    *DFLT_TZ_ABBREV       = "EST";   // DST end rule abbreviation.
 static const bool     DFLT_USE_DST         = true;    // true to use DST.
 static const int32_t  DFLT_DST_OFST        = 60;      // 30 or 60 minute DST offset.
 static const char    *DFLT_DST_START_ABBREV= "EDT";   // DST start rule abbreviation.
-static const uint32_t DFLT_DST_START_WK    = Second;  // DST starts 2nd
-static const uint32_t DFLT_DST_START_DOW   = Sun;     //    Sunday
-static const uint32_t DFLT_DST_START_MONTH = Mar;     //    of March
+static const uint32_t DFLT_DST_START_WK    = wkSecond;// DST starts 2nd
+static const uint32_t DFLT_DST_START_DOW   = dowSun;  //    Sunday
+static const uint32_t DFLT_DST_START_MONTH = mMar;    //    of March
 static const uint32_t DFLT_DST_START_HOUR  = 2;       //    at 2 AM.
-static const uint32_t DFLT_DST_END_WK      = First;   // DST ends 1st
-static const uint32_t DFLT_DST_END_DOW     = Sun;     //    Sunday
-static const uint32_t DFLT_DST_END_MONTH   = Nov;     //    of November
+static const uint32_t DFLT_DST_END_WK      = wkFirst; // DST ends 1st
+static const uint32_t DFLT_DST_END_DOW     = dowSun;  //    Sunday
+static const uint32_t DFLT_DST_END_MONTH   = mNov;    //    of November
 static const uint32_t DFLT_DST_END_HOUR    = 2;       //    at 2 AM.
 static const char    *DFLT_NTP_ADDR        = "time.nist.gov";
                                                       // NTP server
-static const uint32_t DFLT_NTP_PORT        = 123;     // NTP port.
 
 
 /////////////////////////////////////////////////////////////////////////////////
 // TimeParameters structure
 //
-// Holds timezone offset and DST start/end times, and NTP address and port.
+// Holds timezone offset and DST start/end times, and NTP address.
 //
 /////////////////////////////////////////////////////////////////////////////////
 struct TimeParameters
@@ -71,7 +125,7 @@ struct TimeParameters
     // Constructor.
     TimeParameters() :
         m_Version(TP_VERSION), m_TzOfst(DFLT_TZ_OFST), m_UseDst(DFLT_USE_DST),
-        m_DstOfst(DFLT_DST_OFST), m_NtpPort(DFLT_NTP_PORT),
+        m_DstOfst(DFLT_DST_OFST),
         m_DstStartRule{{'\0', '\0', '\0', '\0', '\0', '\0'},
                        DFLT_DST_START_WK,
                        DFLT_DST_START_DOW,
@@ -90,17 +144,16 @@ struct TimeParameters
         strncpy(m_DstEndRule.abbrev, DFLT_TZ_ABBREV, sizeof(m_DstStartRule.abbrev) - 1);
     }
 
-    static const size_t MAX_NTP_ADDR = 26; // Maximumsize of the NTP address string.
+    static const size_t MAX_NTP_ADDR = 26; // Maximum size of the NTP address string.
 
     // Time related fields.
     uint32_t       m_Version;              // Struct version.  Bump on changes.
     int32_t        m_TzOfst;               // Timezone offset in minutes.
     bool           m_UseDst;               // true to use DST.
     int32_t        m_DstOfst;              // 30 or 60 minute DST offset.
-    uint32_t       m_NtpPort;              // NTP port.
     char           m_NtpAddr[MAX_NTP_ADDR];// NTP server address.
-    TimeChangeRule m_DstStartRule;         // Rule for starting DST.
-    TimeChangeRule m_DstEndRule;           // Rule for ending DST.
+    TimeChangeInfo m_DstStartRule;         // Rule for starting DST.
+    TimeChangeInfo m_DstEndRule;           // Rule for ending DST.
 
 }; // End struct TimeParameters.
 
@@ -133,8 +186,9 @@ public:
     // This method initializes the WiFiTimeManager class.
     //
     // Arguments:
-    //    - pApName     - This is the network name to be used for the access point.
-    //    - pApPassword - Pointer to to a null terminated string representing the
+    //    - pApName     - This is the NULL terminated character string representing
+    //                    the network name to be used for the access point.
+    //    - pApPassword - Pointer to to a NULL terminated string representing the
     //                    password to be used by the access point.  This argument
     //                    is optional and if not used, the access point will not
     //                    require a password.  If a password is used, it should be
@@ -144,7 +198,7 @@ public:
     //                    this button will cause a separate setup button to be
     //                    displayed.  The separate setup page will contain time
     //                    related parameters that the user may adjust.  In this
-    //                    case, the WiFi configuratioin page will not display
+    //                    case, the WiFi configuration page will not display
     //                    the time parameters.  If set to false, then the time
     //                    parameters will be selectable from the WiFi
     //                    configuration page.
@@ -168,7 +222,8 @@ public:
     //    A 'true' value indicates connected, while a 'false' value
     //    indicates not connected.
     //
-    // NOTE: If a new connection was just establiched this method update the time.
+    // NOTE: The time will be updated immediately after a new connection is
+    //       established.
     //
     /////////////////////////////////////////////////////////////////////////////
     bool process();
@@ -180,15 +235,17 @@ public:
     // Overrides the WiFiManager autoConnect() method in order to return the
     // status of the WiFi connection.  Automatically connects to the saved WiFi
     // network, or starts the config portal on failure.
-    // This method is overloaded.  The version with no arguments uses the values
-    // passed to Init().  The other version uses the specified access point
-    // name and password, but should not normally be used..
+    //
+    // This method is overloaded.  The version with no arguments uses the
+    // AP name and password values that were passed to Init().  The other version
+    // uses the specified access point name and password, but should not normally
+    // be used.
     //
     // Arguments:
-    //   pApName     - Pointer to a null terminated string representing the name
+    //   pApName     - Pointer to a NULL terminated string representing the name
     //                 to be used for the access point.  This argument is optional.
     //                 If not present, then the value passed to Init() is used.
-    //   pApPassword - Pointer to to a null terminated string representing the
+    //   pApPassword - Pointer to to a NULL terminated string representing the
     //                 password to be used by the access point.  This argument
     //                 is optional.  If not present, then the value passed to
     //                 Init() is used.  If a password is used, it should be
@@ -199,10 +256,8 @@ public:
     //    'false' otherwise.
     //
     /////////////////////////////////////////////////////////////////////////////
-    boolean autoConnect()
-            { WiFiManager::autoConnect(m_pApName, m_pApPassword); return IsConnected(); }
-    boolean autoConnect(char const *pApName, char const *pApPassword = NULL)
-            { WiFiManager::autoConnect(pApName, pApPassword); return IsConnected(); }
+    boolean autoConnect();
+    boolean autoConnect(char const *pApName, char const *pApPassword = NULL);
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -233,15 +288,16 @@ public:
     //          seconds since Januar 1, 1970 (Unix time).
     //
     /////////////////////////////////////////////////////////////////////////////
-    void SetUtcGetCallback(std::function<time_t()> func);
+    void SetUtcGetCallback(std::function<time_t()> func)
+        { m_pUtcGetCallback = func; }
 
 
     /////////////////////////////////////////////////////////////////////////////
     // SetUtcSetCallback()
     //
-    // Sets a callback that will be invoked when NTP UTC time has been received.
-    // Can be used to set the time of a hardware real time clock or other time
-    // source.
+    // Sets a callback that will be invoked when a NTP UTC time update has been
+    // received.  Can be used to set the time of a hardware real time clock or
+    // other time source.
     //
     // Arguments:
     //   func - Pointer to the function to be called to set UTC time.  The
@@ -249,7 +305,8 @@ public:
     //          seconds since January 1, 1970 (Unix time).
     //
     /////////////////////////////////////////////////////////////////////////////
-    void SetUtcSetCallback(std::function<void(time_t t)> func);
+    void SetUtcSetCallback(std::function<void(time_t t)> func)
+        { m_pUtcSetCallback = func; }
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -266,17 +323,17 @@ public:
     // Note: The rWebPage argument of the callback is a reference to a String
     //       that contains the web page that will be sent to the client.  It may
     //       be modified as needed.  The maxSize argument of the callback is the
-    //       maximum size of the String in rWebPage.
+    //       maximum size of the String contained in rWebPage.
     //
     //       Upon return from the callback, the contents of the rWebPage will be
     //       safely copied into a buffer that will be sent to the client.  If
-    //       the size of the (modified) rWebPage exceeds  the value of maxSize,
+    //       the size of the (modified) rWebPage exceeds the value of maxSize,
     //       the buffer will be truncated, so be careful.
     //
     //       Several comments appear within the string that
     //       may be employed to locate specific places within the standard
     //       web page.  The user can use these comments to insert relevant
-    //       HTML or javascript code.  These comments are:
+    //       HTML or javascript code as needed.  These comments are:
     //          "<!-- HTML START -->"
     //              This marks the start of HTML, which is also the start of
     //              the web page string.
@@ -291,7 +348,7 @@ public:
     //              java script initialization code can be added.
     //          "// JS SAVE"
     //              This marks a spot within the function that is executed when
-    //              the submit (save) button is pressed.  It can be used to
+    //              the submit (Save) button is pressed.  It can be used to
     //              perform java script save actions.
     //          "// JS END"
     //              This marks the end of of the java script, just before the
@@ -343,6 +400,7 @@ public:
     // Reset()
     //
     // Reset our state info in NVS.  This includes all timezone and NTP data.
+    // WiFi credential information is not affected.
     //
     // Returns:
     //    Returns 'true' if successful, or 'false' otherwise.
@@ -352,21 +410,40 @@ public:
 
 
     /////////////////////////////////////////////////////////////////////////////
-    // GetUtcTime()
+    // GetUtcTimeT()
     //
-    // Returns the best known value for UTC time.  If it has been a while since
-    // the NTP server has been contacted, then a new NTP request is sent, and its
-    // returned data is used to update the local clock.  If it is too soon since
-    // the server was contacted, then the user supplied UtcGetCallback (if any)
-    // is called to allow the user to update clock time (i.e. an RTC).  If no
-    // user supplied UtcGetCallback is present, then the Arduino time library
-    // version of current UTC time is returned.
+    // This method returns UTC time in UNIX time (time_t).  If a user
+    // UTC get callback has been specified, and it has been a while since an
+    // NTP or user update has occurred, then the user code (if any) is called
+    // to update the clock time.  Otherwise, the ESP32 time is returned.
+    //
+    // Arguments:
+    //   force - Forces update from user callback if present.  This argument
+    //           is optional, and defaults to false.
     //
     // Returns:
-    //   Returns the best known value for the current UTC time.
+    //   Always returns the current UTC time as kept by the internal Unix time
+    //   library or the user specified device if present.
     //
     /////////////////////////////////////////////////////////////////////////////
-    time_t GetUtcTime();
+    time_t GetUtcTimeT(bool force = false);
+
+
+    /////////////////////////////////////////////////////////////////////////////
+    // GetUtcTime()
+    //
+    // This method returns UTC broken-down time.  It uses GetUtcTimeT() to
+    // fetch the UTC time.
+    //
+    // Arguments:
+    //   pTm - A pointer to the tm structure into which the UTC time will be
+    //         saved.
+    //
+    // Returns:
+    //   Always returns the value passed in as pTm.
+    //
+    /////////////////////////////////////////////////////////////////////////////
+    tm *GetUtcTime(tm *pTm);
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -375,51 +452,59 @@ public:
     // Returns the best known value for local time.  Converts the best known
     // UTC time to local time and returns its value.  See GetUtcTime().
     //
+    // Arguments:
+    //   pTm - A pointer to the tm structure into which the local time data will
+    //         be returned.
+    //
     // Returns:
-    //   Returns the best known value for the current local time.
+    //   Returns the best known value for the current local time in the
+    //   structure pointed to by pTm.  Also returns pTm.
     //
     /////////////////////////////////////////////////////////////////////////////
-    time_t GetLocalTime();
+    tm *GetLocalTime(tm *pTm);
 
 
     /////////////////////////////////////////////////////////////////////////////
     // GetDateTimeString
     //
-    // Format and print a unix time_t value, with a time zone label appended.
+    // Format and print a UNIX time_t value.  Uses strftime() to do the conversion.
+    // See https://linux.die.net/man/3/strftime for information on formatting the
+    // date time string using strftime().
     //
     // Arguments:
-    //   pBuf - Pointer to buffer that will receive the time string.  Must be at
-    //          least 32 characters long to receive the full string.  If the buffer
-    //          is shorter than 32 characters, the time string will be truncated.
-    //   size - The size, in bytes, of buf;
-    //   t    - time_t value containing the time to be displayed.
-    //   pTz  - Pointer to the timezone string associated with 't'.  NULL is OK.
+    //   pBuf  - Pointer to a buffer that will receive the time string.  Must be at
+    //           least 64 characters long to receive the full string.  If the buffer
+    //           is shorter than 64 characters, the time string will be truncated.
+    //   size  - The size, in bytes, of the buffer pointed to by pBuf.
+    //   pTime - Pointer to the tm time structure containing the time to be
+    //           converted.
     //
     // Returns:
     //   Always returns the number of characters in the time string minus the
     //   terminating NULL.
     //
     /////////////////////////////////////////////////////////////////////////////
-    int GetDateTimeString(char *pBuf, int size, time_t t, const char *pTz);
+    int GetDateTimeString(char *pBuf, int size, tm *pTime);
 
 
     /////////////////////////////////////////////////////////////////////////////
     // PrintDateTime
     //
-    // Format and print a unix time_t value, with a time zone appended.
+    // Format and print a UNIX broken-down tm time value.
     //
     // Arguments:
-    //   t   - time_t value containing the time to be displayed.
-    //   pTz - Pointer to the timezone string associated with 't'.  NULL is OK.
+    //   pTime - Pointer to the tm time structure containing the time to be
+    //           displayed.
     //
     /////////////////////////////////////////////////////////////////////////////
-    void PrintDateTime(time_t t, const char *pTz = NULL);
+    void PrintDateTime(tm *pTime);
 
 
     /////////////////////////////////////////////////////////////////////////////
     // GetLocalTimezoneString()
     //
-    // Returns a pointer to the currently active timezone string, or NULL on error.
+    // Returns a pointer to the currently active timezone string, or NULL on error
+    // (e.g. "EST").
     //
     /////////////////////////////////////////////////////////////////////////////
     const char *GetLocalTimezoneString();
@@ -483,11 +568,28 @@ public:
     /////////////////////////////////////////////////////////////////////////////
     // UpdateTimezoneRules()
     //
-    // Update our timezone rules.  Should be called any time timezone or DST
+    // Update our DST timezone rules.  Should be called any time timezone or DST
     // data changes.
     //
     /////////////////////////////////////////////////////////////////////////////
     void UpdateTimezoneRules();
+
+
+    /////////////////////////////////////////////////////////////////////////////
+    // SetMinNtpRateSec()
+    //
+    // Sets the minimum time, in seconds, between NTP updates.  Enforces a minimum
+    // value of MIN_NTP_UPDATE_MS.
+    //
+    // Arguments:
+    //    rate - The minimum time, in seconds, between NTP updates.  Will be
+    //           limited to a value no less than MIN_NTP_UPDATE_MS.
+    //
+    // Returns:
+    //   Returns an indication of true if successful, or false on failure.
+    //
+    /////////////////////////////////////////////////////////////////////////////
+    bool SetMinNtpRateSec(uint32_t rate);
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -510,18 +612,16 @@ public:
     uint32_t GetDstEndHour()    const { return m_Params.m_DstEndRule.hour; }
     int32_t  GetDstEndOfst()    const { return m_Params.m_DstEndRule.offset; }
     char    *GetNtpAddr()             { return m_Params.m_NtpAddr; }
-    uint32_t GetNtpPort()       const { return m_Params.m_NtpPort; }
     bool     UsingNetworkTime() const { return m_UsingNetworkTime; }
-    uint32_t GetMinNtpRate()    const { return m_MinNtpRateSec; }
+    uint32_t GetMinNtpRateSec() const { return m_MinNtpRateMs; }
 
     // Min and max constants for selectable fields.
-    // Constants (Last, Fourth, ...) defined in Timezone_Generic.hpp.
-    static const uint32_t WK_MIN     = Last;    // Last
-    static const uint32_t WK_MAX     = Fourth;  // Fourth
-    static const uint32_t DOW_MIN    = Sun;     // Sunday
-    static const uint32_t DOW_MAX    = Sat;     // Saturday
-    static const uint32_t MONTH_MIN  = Jan;     // January
-    static const uint32_t MONTH_MAX  = Dec;     // December
+    static const uint32_t WK_MIN     = wkFirst; // First
+    static const uint32_t WK_MAX     = wkLast;  // Last
+    static const uint32_t DOW_MIN    = dowSun;  // Sunday
+    static const uint32_t DOW_MAX    = dowSat;  // Saturday
+    static const uint32_t MONTH_MIN  = mJan;    // January
+    static const uint32_t MONTH_MAX  = mDec;    // December
     static const uint32_t HOUR_MIN   = 0;       // Midnight
     static const uint32_t HOUR_MAX   = 23;      // 11:00 PM
     static const uint32_t OFFSET_MIN = 30;      // 30 minutes
@@ -570,10 +670,7 @@ public:
     void SetDstEndMonth(uint32_t v)   { m_Params.m_DstEndRule.month = constrain(v, MONTH_MIN, MONTH_MAX); }
     void SetDstEndHour(uint32_t v)    { m_Params.m_DstEndRule.hour = constrain(v, HOUR_MIN, HOUR_MAX); }
     void SetDstEndOfst(int32_t v)     { m_Params.m_DstEndRule.offset = v; }
-    static const uint32_t MIN_NTP_UPDATE_SEC = 4;
-    void SetMinNtpRate(uint32_t r)    { m_MinNtpRateSec = r >= MIN_NTP_UPDATE_SEC ? r : MIN_NTP_UPDATE_SEC; }
     void SetNtpAddr(char *v)          { strncpy(m_Params.m_NtpAddr, v, sizeof(m_Params.m_NtpAddr) - 1); }
-    void SetNtpPort(uint32_t p)       { m_Params.m_NtpPort = constrain(p, 1, 65535); }
     void SetPrintLevel(uint32_t lvl)  { m_PrintLevel = MASK(lvl); }
 
 protected:
@@ -611,6 +708,46 @@ private:
 
 
     /////////////////////////////////////////////////////////////////////////////
+    // InitSntpTime()
+    //
+    // Initializes the SNTP code with NTP address, update rate, timezone info,
+    // and force an NTP sync.
+    //
+    /////////////////////////////////////////////////////////////////////////////
+    void InitSntpTime();
+
+
+    /////////////////////////////////////////////////////////////////////////////
+    // StartNewConnection()
+    //
+    // This method is called on a transition from WiFi not connected to WiFi
+    // connected.  It initializes SNTP, updates timezone rules, and reads UTC
+    // time to prime the internal clock.
+    //
+    /////////////////////////////////////////////////////////////////////////////
+    void StartNewConnection();
+
+
+    /////////////////////////////////////////////////////////////////////////////
+    // GetTimezoneString()
+    //
+    // Returns a string that represents the user selected timezone information
+    // in a form that is compliant with the POSIX TZ environment variable.
+    // See https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html .
+    //
+    // Arguments:
+    //   pBuffer - A pointer to the buffer in which the TZ string will be returned.
+    //   bufSize - The size, in chars, of the buffer pointed to by pBuffer.
+    //             Should be at least 64 chars.
+    //
+    // Returns:
+    //   Returns the TZ string in pBuffer, and a pointer to pBuffer.
+    //
+    /////////////////////////////////////////////////////////////////////////////
+    char *GetTimezoneString(char *pBuffer, size_t bufSize);
+
+
+    /////////////////////////////////////////////////////////////////////////////
     // UpdateWebPage()
     //
     // Update our custom Setup page based on current timezone, DST, and NTP settings.
@@ -633,49 +770,18 @@ private:
 
 
     /////////////////////////////////////////////////////////////////////////////
-    // DefaultUtcGetCallback()
-    //
-    // This static method returns UTC time as kept by the Unix time library.
-    // It is called by default when UTC time is needed, but network time should
-    // not be called due to invocation frequency limitations, or when no network
-    // connection exists.
-    //
-    // Returns:
-    //   Always returns the current UTC time as kept by the internal Unix time
-    //   library.
-    //
-    // Note that this method may be overridden by user code by supplying a  user
-    // implemented callback via SetUtcGetCallback().
-    //
-    /////////////////////////////////////////////////////////////////////////////
-    static time_t DefaultUtcGetCallback() { return now(); }
-
-
-    /////////////////////////////////////////////////////////////////////////////
-    // DefaultUtcSetCallback()
+    // UtcSetCallback()
     //
     // This static method sets UTC time as kept by the Unix time library.
-    // It is called by default when UTC time is initialized or updated from
-    // network time.
+    // It is called when UTC time updated from NTP network time.  If the user
+    // has specified a callback, then it is called.
     //
     // Arguments:
-    //   t - The UTC time in seconds since January 1, 1970 as read from a NTP
-    //       server.
-    //
-    // Note that this method may be overridden by user code by supplying a  user
-    // implemented callback via SetUtcSetCallback().
+    //   pTvt -  Pointer to the timeval struct containing the UTC time in seconds
+    //           since January 1, 1970 in its tv_sec member.
     //
     /////////////////////////////////////////////////////////////////////////////
-    static void DefaultUtcSetCallback(time_t t) { setTime(t); }
-
-
-    /////////////////////////////////////////////////////////////////////////////
-    // SendNtpPacket()
-    //
-    // Sends a time request packet via UDP to the NTP server.
-    //
-    /////////////////////////////////////////////////////////////////////////////
-    void SendNtpPacket();
+    static void UtcSetCallback(timeval *pTv);
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -690,9 +796,9 @@ private:
     /////////////////////////////////////////////////////////////////////////////
     // WTMPrint()
     //
-    // Print the specified data if the specified level matches the m_PrintLevel
+    // Print the specified data if the selected level matches the m_PrintLevel
     // that was set via SetPrintLevel().  Note that this method is overloaded
-    // to work with null terminated strings, and String objects.
+    // to work with NULL terminated strings, and String objects.
     //
     // Arguments:
     //   level - The bit pattern of the types of data that may be printed.
@@ -707,20 +813,18 @@ private:
     /////////////////////////////////////////////////////////////////////////////
     // Private static constants.
     /////////////////////////////////////////////////////////////////////////////
-    static const char    *pPrefSavedStateLabel;       // Labes for saving preferences.
+    static const char    *pPrefSavedStateLabel;       // Label for saving preferences.
     static const size_t   MAX_NVS_NAME_LEN;           // Maximum NVS preferences name length.
-    static const size_t   MAX_JSON_SIZE     = 350;    // Max web pag JSON size.
+    static const size_t   MAX_JSON_SIZE     = 350;    // Max web page JSON size.
     static const char    *m_pName;                    // Preferences name.
-    static const int      NTP_PACKET_SIZE   = 48;     // NTP timestamp is in the
-                                                      //    first 48 bytes of the message.
-    static const int      UDP_TIMEOUT_MS    = 2000;   // Timeout in miliseconds to
-                                                      //    wait for NTP packet to arrive.
+    static const uint32_t MIN_NTP_UPDATE_MS = 15000;  // Minimum NTP update rate (milliseconds).
 
     // Allocate enough space to buffer twice the size of our original web page.
     // This allows for the user to add HTML and/or java script if needed.
     // This is wasteful, but easy.  %%%jmc Possibly fix this in the future.
     static const size_t   MAX_WEB_PAGE_SIZE = 2 * sizeof(TZ_SELECT_STR) + MAX_JSON_SIZE;
     static char           WebPageBuffer[MAX_WEB_PAGE_SIZE];
+    static volatile bool  m_UsingNetworkTime;
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -729,13 +833,9 @@ private:
     const char    *m_pApName;             // Network name for AP.
     const char    *m_pApPassword;         // AP password.
     uint32_t       m_PrintLevel;          // Status print level selection.
-    time_t         m_LastTime;            // Timestamp from the last NTP packet.
-    WiFiUDP        m_Udp;                 // UDP instance for tx & rx of UDP packets.
-    bool           m_UsingNetworkTime;    // True if using time from NTP server.
     TimeParameters m_Params;              // Timezone and DST data.
-    Timezone       m_Timezone;            // Timezone class for TZ and DST change.
-    uint32_t       m_MinNtpRateSec;       // Minimum seconds between NTP updates.
-    TimeChangeRule *m_pLclTimeChangeRule; // Pointer to time change rule in use.
+    uint32_t       m_MinNtpRateMs;        // Minimum milliseconds between NTP updates.
+    uint32_t       m_LastUpdateMs;        // Last ms time of NTP update.
     std::function<void()> m_pSaveParamsCallback;
                                           // Pointer to save params callback.
     std::function<time_t()> m_pUtcGetCallback;
@@ -743,11 +843,8 @@ private:
     std::function<void(time_t t)> m_pUtcSetCallback; // Pointer to set UTC callback.
     std::function<void(String &rWebPage, uint32_t maxSize)> m_pUpdateWebPageCallback;
                                           // Pointer to update web page callback.
-    uint8_t        m_PacketBuf[NTP_PACKET_SIZE];
-                                          // Buffer to hold in & out packets.
 
 }; // End class WiFiTimeManager.
 
 
-
-#endif // TIMESETTINGS_H
+#endif // WIFITIMEMANAGER_H

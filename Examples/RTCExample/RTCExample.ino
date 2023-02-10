@@ -29,6 +29,9 @@
 // can be found on github at: https://github.com/regnaDkciN/WiFiTimeManager .
 //
 // History:
+// - jmcorbett 10-FEB-2023
+//   Updated per changes in WiFiTimeManager interface.
+//
 // - jmcorbett 19-JAN-2023 Original creation.
 //
 // Copyright (c) 2023, Joseph M. Corbett
@@ -287,11 +290,19 @@ void setup()
     // demonstration code above to illustrate how to add fields to the web page.
     gpWtm->SetUpdateWebPageCallback(UpdateWebPageCallback);
 
+#if defined USE_RTC
+    // Setup the RTC callbacks.  These should be done before calling
+    // WiFiTimeManager::Init(), since it will use the callbacks to initialize
+    // the current time.
+    gpWtm->SetUtcGetCallback(UtcGetCallback);
+    gpWtm->SetUtcSetCallback(UtcSetCallback);
+#endif
+
     // Initialize the WiFiTimeManager class with our AP and button selections.
     gpWtm->Init(AP_NAME, AP_PWD, SETUP_BUTTON);
 
     // Contact the NTP server no more than once per minute.
-    gpWtm->SetMinNtpRate(60);
+    gpWtm->SetMinNtpRateSec(60);
 
     // Setup some demo callbacks that simply report entry.
     gpWtm->setAPCallback(APCallback);
@@ -306,11 +317,6 @@ void setup()
     // web page data.
     gpWtm->setSaveParamsCallback(SaveParamsCallback);
 
-#if defined USE_RTC
-    gpWtm->SetUtcGetCallback(UtcGetCallback);
-    gpWtm->SetUtcSetCallback(UtcSetCallback);
-#endif
-
     // Attempt to connect to the network in non-blocking mode.
     gpWtm->setConfigPortalBlocking(BLOCKING_MODE);
     gpWtm->setConfigPortalTimeout(0);
@@ -322,7 +328,7 @@ void setup()
     {
         // If we get here you have connected to the WiFi.
         Serial.println("connected...yeey :)");
-        gpWtm->GetUtcTime();
+        gpWtm->GetUtcTimeT();
     }
 } // End setup().
 
@@ -345,7 +351,7 @@ void loop()
         {
             // This is the place to do something when we transition from
             // unconnected to connected.  As an example, here we get the time.
-            gpWtm->GetUtcTime();
+            gpWtm->GetUtcTimeT();
         }
     }
 
@@ -360,10 +366,11 @@ void loop()
     {
         // Read the time and display the results.
         lastTime = thisTime;
-        time_t utcTime = gpWtm->GetUtcTime();
-        time_t lclTime = gpWtm->GetLocalTime();
-        gpWtm->PrintDateTime(utcTime, "UTC");
-        gpWtm->PrintDateTime(lclTime, gpWtm->GetLocalTimezoneString());
+        tm localTime;
+        gpWtm->GetUtcTime(&localTime);
+        gpWtm->PrintDateTime(&localTime);
+        gpWtm->GetLocalTime(&localTime);
+        gpWtm->PrintDateTime(&localTime);
         Serial.println();
     }
 

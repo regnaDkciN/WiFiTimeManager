@@ -28,6 +28,9 @@
 // can be found on github at: https://github.com/regnaDkciN/WiFiTimeManager .
 //
 // History:
+// - jmcorbett 10-FEB-2023
+//   Updated per changes in WiFiTimeManager interface.
+//
 // - jmcorbett 19-JAN-2023 Original creation.
 //
 // Copyright (c) 2023, Joseph M. Corbett
@@ -144,7 +147,7 @@ void setup()
     gpWtm->Init(AP_NAME, AP_PWD, SETUP_BUTTON);
 
     // Contact the NTP server no more than once per minute.
-    gpWtm->SetMinNtpRate(60);
+    gpWtm->SetMinNtpRateSec(60);
 
     // Attempt to connect to the network.
     gpWtm->setConfigPortalBlocking(BLOCKING_MODE);
@@ -179,7 +182,7 @@ void loop()
         {
             // This is the place to do something when we transition from
             // unconnected to connected.  As an example, here we get the time.
-            gpWtm->GetUtcTime();
+            gpWtm->GetUtcTimeT();
         }
     }
 
@@ -194,10 +197,11 @@ void loop()
     {
         // Read the time and display the results.
         lastTime = thisTime;
-        time_t utcTime = gpWtm->GetUtcTime();
-        time_t lclTime = gpWtm->GetLocalTime();
-        gpWtm->PrintDateTime(utcTime, "UTC");
-        gpWtm->PrintDateTime(lclTime, gpWtm->GetLocalTimezoneString());
+        tm localTime;
+        gpWtm->GetUtcTime(&localTime);
+        gpWtm->PrintDateTime(&localTime);
+        gpWtm->GetLocalTime(&localTime);
+        gpWtm->PrintDateTime(&localTime);
         Serial.println();
     }
 

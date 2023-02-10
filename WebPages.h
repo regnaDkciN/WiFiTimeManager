@@ -29,6 +29,12 @@
 //              </script> declaration.
 //
 // History:
+// - jmcorbett 10-FEB-2023
+//   Major rework to replace use of Timezone_Generic library with ESP32 SNTP
+//   library.  Changed returned values for weekNumberX and dayOfWeekX to match
+//   values expected the ESP32 SNTP library.  Also Removed NTP port selection
+//   since port 123 is universally used.
+//
 // - jmcorbett 19-JAN-2023 Original creation.
 //
 // Copyright (c) 2023, Joseph M. Corbett
@@ -102,17 +108,17 @@ const char TZ_SELECT_STR[] = R"=====(
       <option value="2">Second</option>
       <option value="3">Third</option>
       <option value="4">Fourth</option>
-      <option value="0">Last</option>
+      <option value="5">Last</option>
     </select>
     <!-- DST START DAY OF WEEK SELECTION -->
     <select name="dayOfWeek1" id="dayOfWeek1" class="canHide">
-      <option value="1">Sunday</option>
-      <option value="2">Monday</option>
-      <option value="3">Tuesday</option>
-      <option value="4">Wednesday</option>
-      <option value="5">Thursday</option>
-      <option value="6">Friday</option>
-      <option value="7">Saturday</option>
+      <option value="0">Sunday</option>
+      <option value="1">Monday</option>
+      <option value="2">Tuesday</option>
+      <option value="3">Wednesday</option>
+      <option value="4">Thursday</option>
+      <option value="5">Friday</option>
+      <option value="6">Saturday</option>
     </select>
     <!-- DST START MONTH SELECTION -->
     <select name="month1" id="month1" class="canHide">
@@ -169,17 +175,17 @@ const char TZ_SELECT_STR[] = R"=====(
       <option value="2">Second</option>
       <option value="3">Third</option>
       <option value="4">Fourth</option>
-      <option value="0">Last</option>
+      <option value="5">Last</option>
     </select>
     <!-- DST END DAY OF WEEK SELECTION -->
     <select name="dayOfWeek2" id="dayOfWeek2" class="canHide">
-      <option value="1">Sunday</option>
-      <option value="2">Monday</option>
-      <option value="3">Tuesday</option>
-      <option value="4">Wednesday</option>
-      <option value="5">Thursday</option>
-      <option value="6">Friday</option>
-      <option value="7">Saturday</option>
+      <option value="0">Sunday</option>
+      <option value="1">Monday</option>
+      <option value="2">Tuesday</option>
+      <option value="3">Wednesday</option>
+      <option value="4">Thursday</option>
+      <option value="5">Friday</option>
+      <option value="6">Saturday</option>
     </select>
     <!-- DST END MONTH SELECTION -->
     <select name="month2" id="month2" class="canHide">
@@ -229,9 +235,6 @@ const char TZ_SELECT_STR[] = R"=====(
     <h3 style="display:inline">NTP SERVER ADDRESS:</h3>
     <input type="text" id="ntpServerAddr" name="ntpServerAddr" maxlength="25">
     <br>
-    <h3 style="display:inline">NTP SERVER PORT:</h3>
-    <input type="number" id="ntpServerPort" name="ntpServerPort" min="1" max="65535">
-    <br>
     <!-- HTML END -->
 </body>
 <script>
@@ -240,7 +243,7 @@ const char TZ_SELECT_STR[] = R"=====(
 
   // Initialize globals on page load.
   window.onload = (event) => {
-    // Initialize current timezone/dst settings.
+    // Initialize current timezone/DST settings.
     initializeSettings();
 
     // Hide or show the initial DST values selections.
@@ -249,7 +252,7 @@ const char TZ_SELECT_STR[] = R"=====(
     // JS ONLOAD
   }
 
-  // Initialize current timezone/dst settings.
+  // Initialize current timezone/DST settings.
   function initializeSettings() {
     // Refresh page since we might have arrived here due returning from save.
     if (sessionStorage.getItem("doReload") == "true") {
@@ -285,7 +288,6 @@ const char TZ_SELECT_STR[] = R"=====(
     let tzAbbrev = json.TZ_ABBREVIATION;
     let dstAbbrev = json.DST_ABBREVIATION;
     let ntpAddr = json.NTP_ADDRESS;
-    let ntpPort = json.NTP_PORT;
 
     // Initialize the select fields.
     setSelectedIndex("timezoneOffset", timeZone);
@@ -304,7 +306,6 @@ const char TZ_SELECT_STR[] = R"=====(
     document.getElementById("dstStartString").value = dstAbbrev;
 
     document.getElementById("ntpServerAddr").value = ntpAddr;
-    document.getElementById("ntpServerPort").value = ntpPort;
   }
 
   // Hide/unhide DST related fields based on DST checkbox.

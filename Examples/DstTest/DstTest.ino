@@ -1,45 +1,40 @@
 /////////////////////////////////////////////////////////////////////////////////
-// EditWebPage.ino
+// DstTest.ino
 //
-// This file contains example code demonstrating the use of the WiFiTimeManager
-// library in the polled (non-blocking) mode.  It also demonstrates the ease
-// of adding a user defined input field to the Setup page.
+// This file tests the DST related time change properties of the WiFiTimeManager
+// library ( https://github.com/regnaDkciN/WiFiTimeManager ).  It exercises the
+// DST related services as follows:
+//   1. Initialize the WiFiTimeManager to the Cleveland, Ohio timezone.
+//   2. Display a few local time values to verify that the time is correct.
+//   3. Change the system time to just before DST start and verify that time
+//      changes from 1:59:59 EST to 3:00:00 EDT at the correct time.
+//   4. Change the system time to just before DST end and verify that time
+//      changes from 1:59:59 EDT to 1:00:00 EST at the correct time.
+//   5. Change the system time to the start of 2023 and display each second
+//      tick in order to be able to observe how long it takes to perform an
+//      NTP update and return to the correct local time.
 //
-// A simple dummy data field is added to the Setup web page.
+// This code was based on code by Hardy Maxa with details at:
+//   https://RandomNerdTutorials.com/esp32-ntp-timezones-daylight-saving/ .
 //
-// In non-blocking mode, if a network connection cannot be made at power-up, the
-// system starts the config portal and continues execution so that the user code
-// can continue to execute while the config portal runs.
-//
-// The config portal creates a DNS web server with IP address of 192.168.4.1 .
-// Any WiFi enabled device can use its web browser to access the web server and
-// configure the WiFi credentials, timezone, DST start and end times, and
-// NTP server information.  While the config portal is active, the system
-// continues to execute any other user code as usual.  The WiFiTimeManager
-// must be polled within the main loop() function in order to keep the config
-// portal up to date.
-//
-// This example includes the following:
+// This example also includes the following:
 //   - A reset button connected to GPIO 14.  This button is used to either start
 //     the config portal on a short press, or reset all state information
 //     including WiFi credentials, timezone, DST, and NTP information.
 //   - An LED connected to GPIO 12 that lights when NTP time is being used.
 //   - An LED connected to GPIO 27 that lights when the local clock is supplying
-//     time data (i.e. when NTP time cannot be retrieved from the net).
-//   - A simple customer defined numeric input field is added to the Setup page.
+//     time data.
+//   - A DS3231 RTC connected to the ESP32 I2C SCL and SDA pins.
 //
 // The latest version of WiFiTimeManager code with documentation and examples
 // can be found on github at: https://github.com/regnaDkciN/WiFiTimeManager .
 //
 // History:
-// - jmcorbett 10-FEB-2023
-//   Updated per changes in WiFiTimeManager interface.
-//
-// - jmcorbett 019-JAN-2023 Original creation.
+// - jmcorbett 10-FEB-2023 Original creation.
 //
 // Copyright (c) 2023, Joseph M. Corbett
-//
 /////////////////////////////////////////////////////////////////////////////////
+
 
 #include <String>               // For String class.
 #include <WiFiTimeManager.h>    // Manages timezone, DST, and NTP.
@@ -51,90 +46,85 @@
 static WiFiTimeManager *gpWtm;  // Pointer to the WiFiTimeManager singleton instance.
 static const bool SETUP_BUTTON  = true;
                                 // Use a separate Setup button on the web page.
-static const bool BLOCKING_MODE = false;
-                                // Use non-blocking mode.
+static const bool BLOCKING_MODE = true; // Use blocking mode.
 static const char *AP_NAME = "WiFi Clock Setup";
                                 // AP name user will see as network device.
 static const char *AP_PWD  = NULL;
                                 // AP password.  NULL == no password.
 
-// Example HTML code to demonstrate insertion of data fields on the Setup web page.
-static const char EDIT_TEST_STR[] = R"(
-    <br>
-    <h3 style="display:inline">AN INTEGER VALUE:</h3>
-    <input type="number" id="editTestNumber" name="editTestNumber" min="0" max="1000" value="0">
-    <br>
-)";
-
 
 /////////////////////////////////////////////////////////////////////////////////
-// The following functions are for demonstration and simply report entry.
-// These are not normally needed, and are included only as an example of how to
-// use the many callbacks.
-/////////////////////////////////////////////////////////////////////////////////
-void APCallback(WiFiManager *)
-{
-    Serial.println("APCallback");
-}
-
-void WebServerCallback()
-{
-    Serial.println("WebServerCallback");
-}
-
-void ConfigResetCallback()
-{
-    Serial.println("ConfigResetCallback");
-}
-
-void SaveConfigCallback()
-{
-    Serial.println("SaveConfigCallback");
-}
-
-void PreSaveConfigCallback()
-{
-    Serial.println("PreSaveConfigCallback");
-}
-
-void PreSaveParamsCallback()
-{
-    Serial.println("PreSaveParamsCallback");
-}
-
-void PreOtaUpdateCallback()
-{
-    Serial.println("PreOtaUpdateCallback");
-}
-
-
-/////////////////////////////////////////////////////////////////////////////////
-// UpdateWebPageCallback()
+// SetTime()
 //
-// This callback is invoked when the web page needs to be updated.  This is
-// demonstration code to show how one might add an entry to the Setup web page.
+// This function sets the current sysstem time based on the input arguments.
+// The arguments should be familiar, representing year, month, day of month,
+// hour, minute, and second of new time.  isDst is true if DST is currently
+// in effect.
 /////////////////////////////////////////////////////////////////////////////////
-void UpdateWebPageCallback(String &rWebPage, uint32_t maxSize)
+void SetTime(int yr, int month, int mday, int hr, int minute, int sec, int isDst)
 {
-    Serial.println("UpdateWebPageCallback");
-    // Replace the HTML END marker with our demonstration code.
-    rWebPage.replace("<!-- HTML END -->", EDIT_TEST_STR);
-} // End UpdateWebPageCallback().
+    struct tm tm;
+
+    tm.tm_year = yr - 1900;   // Set date
+    tm.tm_mon = month - 1;
+    tm.tm_mday = mday;
+    tm.tm_hour = hr;      // Set time
+    tm.tm_min = minute;
+    tm.tm_sec = sec;
+    tm.tm_isdst = isDst;  // 1 or 0
+    time_t t = mktime(&tm);
+    Serial.printf("Setting time: %s", asctime(&tm));
+    struct timeval tNow = { .tv_sec = t };
+    settimeofday(&tNow, NULL);
+} // End SetTime().
 
 
 /////////////////////////////////////////////////////////////////////////////////
-// SaveParamsCallback()
+// CompareTimes()
 //
-// This callback is invoked when the user saves the Setup web page.  This is
-// demonstration code to show how one might retrieve the value of an entry
-// that was added via the UpdateWebPageCallback().
+// Compares two dates/times.
+//
+// Arguments:
+//   - yr, month, mday, hr, minute, sec, isDst : Data for first time to compare.
+//   - pTm : Pointer to tm struct containing second time to compare.
+//
+// Returns:
+// Returns true if times match, false otherwise.
+//
 /////////////////////////////////////////////////////////////////////////////////
-void SaveParamsCallback()
+bool CompareTimes(int yr, int month, int mday, int hr, int minute, int sec,
+                  int isDst, tm *pTm)
 {
-    Serial.println("UpdateWebPageCallback");
-    // Get our field value from the WiFiTimeManager and display its value.
-    Serial.printf("Integer Value = %d\n", gpWtm->GetParamInt("editTestNumber"));
-} // End SaveParamsCallback().
+    if ((pTm->tm_year != yr - 1900) ||
+        (pTm->tm_mon != month-1) ||
+        (pTm->tm_mday != mday) ||
+        (pTm->tm_hour != hr) ||
+        (pTm->tm_min != minute) ||
+        (pTm->tm_sec != sec) ||
+        (pTm->tm_isdst != isDst))
+    {
+        Serial.println("*** TIME MISMATCH ***");
+        return false;
+    }
+    return true;
+} // End CompareTimes().
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// SetTimezone()
+//
+// Sets the timezone based on the input TZ string.  pTimezone is a pointer to
+// the NULL terminated timezone string.  See
+// https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html
+// for details of forming the timezone string.
+/////////////////////////////////////////////////////////////////////////////////
+void SetTimezone(const char *pTimezone)
+{
+    Serial.printf("  Setting Timezone to %s\n", pTimezone);
+    // Adjust the TZ.  Clock settings are adjusted to show the new local time.
+    setenv("TZ", pTimezone, 1);
+    tzset();
+} // End SetTimezone().
 
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -166,6 +156,7 @@ void CheckButton()
                 ESP.restart();
             }
 
+ESP.restart(); // For development only.
             // Short press, start the config portal with a delay.
             if (!gpWtm->IsConnected())
             {
@@ -228,30 +219,11 @@ void setup()
     // initializes a default time that the RTC may want to override.
     gpWtm = WiFiTimeManager::Instance();
 
-    // The web page is updated in Init(), so setup our callback before
-    // WiFiTimeManager::Init() is called.  In this case, we have added some
-    // demonstration code above to illustrate how to add fields to the web page.
-    gpWtm->SetUpdateWebPageCallback(UpdateWebPageCallback);
-
     // Initialize the WiFiTimeManager class with our AP and button selections.
     gpWtm->Init(AP_NAME, AP_PWD, SETUP_BUTTON);
 
     // Contact the NTP server no more than once per minute.
-    gpWtm->SetMinNtpRateSec(60);
-
-    // Setup some demo callbacks that simply report entry (not normally needed).
-    gpWtm->setAPCallback(APCallback);
-    gpWtm->setWebServerCallback(WebServerCallback);
-    gpWtm->setConfigResetCallback(ConfigResetCallback);
-    gpWtm->setSaveConfigCallback(SaveConfigCallback);
-    gpWtm->setPreSaveConfigCallback(PreSaveConfigCallback);
-    gpWtm->setPreSaveParamsCallback(PreSaveParamsCallback);
-    gpWtm->setPreOtaUpdateCallback(PreOtaUpdateCallback);
-
-    // For demo purposes, use a save parameters callback to fetch our added
-    // web page data.
-    gpWtm->setSaveParamsCallback(SaveParamsCallback);
-
+    gpWtm->SetMinNtpRateSec(90);
 
     // Attempt to connect to the network in non-blocking mode.
     gpWtm->setConfigPortalBlocking(BLOCKING_MODE);
@@ -264,7 +236,11 @@ void setup()
     {
         // If we get here you have connected to the WiFi.
         Serial.println("connected...yeey :)");
+        gpWtm->GetUtcTimeT();
     }
+
+    // Set the timezone to Cleveland, Ohio time.
+    SetTimezone("EST+5:0EDT+4:0,M3.2.0/2,M11.1.0/2");
 } // End setup().
 
 
@@ -279,38 +255,74 @@ void setup()
 /////////////////////////////////////////////////////////////////////////////////
 void loop()
 {
-    if(!gpWtm->IsConnected())
-    {
-        // Avoid delays() in loop when non-blocking and other long running code.
-        if (gpWtm->process())
-        {
-            // This is the place to do something when we transition from
-            // unconnected to connected.  As an example, here we get the time.
-            gpWtm->GetUtcTimeT();
-        }
-    }
-
     // Check and handle the reset button.
     CheckButton();
 
-    // Read the time every 10 seconds.
-    static uint32_t lastTime = millis();
-    uint32_t thisTime = millis();
-    static const uint32_t updateTime = 10000;   // 10 seconds between reading time
-    if (thisTime - lastTime >= updateTime)
-    {
-        // Read the time and display the results.
-        lastTime = thisTime;
-        tm localTime;
-        gpWtm->GetUtcTime(&localTime);
-        gpWtm->PrintDateTime(&localTime);
-        gpWtm->GetLocalTime(&localTime);
-        gpWtm->PrintDateTime(&localTime);
-        Serial.println();
-    }
-
     // Update the LEDs.
     SetLeds(gpWtm->UsingNetworkTime());
-    delay(1);
+
+    static bool initializing = true;
+    tm localTime;
+    if (initializing)
+    {
+        uint32_t i = 0;
+        Serial.println("Lets show the local time for a bit.  Starting with TZ set for Cleveland, Ohio");
+        for (i = 0; i < 10; i++)
+        {
+            delay(1000);
+            gpWtm->GetLocalTime(&localTime);
+            gpWtm->PrintDateTime(&localTime);
+        }
+
+        // Set it to 5 seconds before daylight savings comes in.
+        // Note: isDst = 0 to indicate that the time we set is not in DST.
+        Serial.println("Now change the time.  5 sec before DST should start. (2nd Sunday of March)");
+        SetTime(2023, 3, 12, 1, 59, 55, 0);
+        for (i = 0; i < 10; i++)
+        {
+            delay(1000);
+            gpWtm->GetLocalTime(&localTime);
+            gpWtm->PrintDateTime(&localTime);
+            // Check to make sure that time jumped forward by 1 hour.
+            if (i == 5)
+            {
+                CompareTimes(2023, 3, 12, 3, 0, 0, 1, &localTime);
+            }
+        }
+
+
+        // Set it to 5 seconds before daylight savings ends.
+        // Not: isDst = 1 to indicate that the time we set is in DST.
+        Serial.println("Now change the time.  10 sec before DST should finish. (1st Sunday of November");
+        SetTime(2023, 11, 5, 1, 59, 55, 1);
+        for (i = 0; i < 10; i++)
+        {
+            delay(1000);
+            gpWtm->GetLocalTime(&localTime);
+            gpWtm->PrintDateTime(&localTime);
+            // Check to make sure that time jumped back by 1 hour.
+            if (i == 5)
+            {
+                CompareTimes(2023, 11, 5, 1, 0, 0, 0, &localTime);
+            }
+        }
+
+        // Set UTC to known value - Jan 1, 2023 00:00:00 (1672531200)
+        // https://iotespresso.com/esp32-arduino-time-operations/
+        // Set for Cleveland, Ohio EST/EDT
+        Serial.println("Now change the time to Jan 1, 2023 00:00:00 (UTC)");
+        struct timeval tv_ts = {.tv_sec = 1672531200};
+        settimeofday(&tv_ts, NULL);
+
+        // Now lets watch the time and see how long it takes for NTP to fix the clock
+        Serial.println("Waiting for NTP update (expect in about 90 seconds)");
+        initializing = false;
+    }
+
+    gpWtm->GetLocalTime(&localTime);
+    gpWtm->PrintDateTime(&localTime);
+
+    delay(1000);
 
 } // End loop().
+
