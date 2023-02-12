@@ -19,7 +19,7 @@
 // can be found on github at: https://github.com/regnaDkciN/WiFiTimeManager .
 //
 // History:
-// - jmcorbett 10-FEB-2023
+// - jmcorbett 12-FEB-2023
 //   Major rework to replace use of Timezone_Generic library with ESP32 SNTP
 //   library.  Several interface changes were made as a result:
 //   o GetUtcTime() now takes a pointer to a tm structure in which the broken-down
@@ -34,6 +34,8 @@
 //   o Renamed SetMinNtpRate() to SetMinNtpRateSec().
 //   o Renamed GetMinNtpRate() to GetMinNtpRateSec().
 //   o Removed NTP port selection since port 123 is universally used.
+//   o Replaced setSaveParamsCallback() with SetSaveParamsCallback().  The
+//     WiFiManager version is no longer available to the user.
 //
 // - jmcorbett 19-JAN-2023 Original creation.
 //

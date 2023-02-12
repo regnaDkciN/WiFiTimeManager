@@ -29,7 +29,7 @@
 //              </script> declaration.
 //
 // History:
-// - jmcorbett 10-FEB-2023
+// - jmcorbett 12-FEB-2023
 //   Major rework to replace use of Timezone_Generic library with ESP32 SNTP
 //   library.  Changed returned values for weekNumberX and dayOfWeekX to match
 //   values expected the ESP32 SNTP library.  Also Removed NTP port selection
