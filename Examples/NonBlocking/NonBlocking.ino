@@ -28,7 +28,7 @@
 // can be found on github at: https://github.com/regnaDkciN/WiFiTimeManager .
 //
 // History:
-// - jmcorbett 10-FEB-2023
+// - jmcorbett 12-FEB-2023
 //   Updated per changes in WiFiTimeManager interface.
 //
 // - jmcorbett 19-JAN-2023 Original creation.

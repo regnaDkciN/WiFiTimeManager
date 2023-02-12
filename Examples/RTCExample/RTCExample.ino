@@ -29,7 +29,7 @@
 // can be found on github at: https://github.com/regnaDkciN/WiFiTimeManager .
 //
 // History:
-// - jmcorbett 10-FEB-2023
+// - jmcorbett 12-FEB-2023
 //   Updated per changes in WiFiTimeManager interface.
 //
 // - jmcorbett 19-JAN-2023 Original creation.
@@ -285,10 +285,11 @@ void setup()
     }
 #endif
 
-    // The web page is updated in Init(), so setup our callback before
+    // The web page is updated in Init(), so setup our callbacks before
     // WiFiTimeManager::Init() is called.  In this case, we have added some
     // demonstration code above to illustrate how to add fields to the web page.
     gpWtm->SetUpdateWebPageCallback(UpdateWebPageCallback);
+    gpWtm->SetSaveParamsCallback(SaveParamsCallback);
 
 #if defined USE_RTC
     // Setup the RTC callbacks.  These should be done before calling
@@ -312,10 +313,6 @@ void setup()
     gpWtm->setPreSaveConfigCallback(PreSaveConfigCallback);
     gpWtm->setPreSaveParamsCallback(PreSaveParamsCallback);
     gpWtm->setPreOtaUpdateCallback(PreOtaUpdateCallback);
-
-    // For demo purposes, use a save parameters callback to fetch our added
-    // web page data.
-    gpWtm->setSaveParamsCallback(SaveParamsCallback);
 
     // Attempt to connect to the network in non-blocking mode.
     gpWtm->setConfigPortalBlocking(BLOCKING_MODE);
